@@ -1,0 +1,349 @@
+import React, { useRef, useEffect, useState } from 'react';
+import { Play, RotateCcw, Gift, Star } from 'lucide-react';
+import { Reward, WheelSegment } from '../types';
+import { useWheel } from '../hooks/useWheel';
+import { useRewards } from '../hooks/useRewards';
+
+interface RewardWheelProps {
+  habitStreak: number;
+  habitName: string;
+  onRewardWon?: (reward: Reward) => void;
+  disabled?: boolean;
+}
+
+export const RewardWheel: React.FC<RewardWheelProps> = ({
+  habitStreak,
+  habitName,
+  onRewardWon,
+  disabled = false
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [currentRotation, setCurrentRotation] = useState(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [wonReward, setWonReward] = useState<Reward | null>(null);
+  const [showResult, setShowResult] = useState(false);
+  
+  const { generateWheelSegments, canSpinWheel: canSpin, calculateWheelRotation, getCooldownTimeRemaining } = useWheel();
+  const { claimReward, getRewardsByCategory } = useRewards();
+
+  const segments = generateWheelSegments(habitStreak);
+  const canSpinWheel = canSpin(habitStreak) && !disabled;
+
+  const drawWheel = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 10;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw outer circle
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#E5E7EB';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    if (segments.length === 0) {
+      // Draw empty wheel
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = '#F3F4F6';
+      ctx.fill();
+      
+      ctx.fillStyle = '#9CA3AF';
+      ctx.font = '20px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Noch keine Belohnungen', centerX, centerY);
+      return;
+    }
+
+    let currentAngle = currentRotation;
+    const anglePerSegment = (2 * Math.PI) / segments.length;
+
+    segments.forEach((segment, index) => {
+      const startAngle = currentAngle;
+      const endAngle = currentAngle + anglePerSegment;
+
+      // Draw segment
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fillStyle = segment.color;
+      ctx.fill();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw text
+      const textAngle = startAngle + anglePerSegment / 2;
+      const textX = centerX + Math.cos(textAngle) * (radius * 0.7);
+      const textY = centerY + Math.sin(textAngle) * (radius * 0.7);
+
+      ctx.save();
+      ctx.translate(textX, textY);
+      ctx.rotate(textAngle + Math.PI / 2);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(segment.reward.name, 0, 0);
+      ctx.restore();
+
+      // Draw reward icon
+      const iconAngle = startAngle + anglePerSegment / 2;
+      const iconX = centerX + Math.cos(iconAngle) * (radius * 0.4);
+      const iconY = centerY + Math.sin(iconAngle) * (radius * 0.4);
+
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(segment.reward.icon || '🎁', iconX, iconY);
+
+      currentAngle = endAngle;
+    });
+
+    // Draw center circle
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 30, 0, 2 * Math.PI);
+    ctx.fillStyle = '#374151';
+    ctx.fill();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Draw pointer
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY - radius - 10);
+    ctx.lineTo(centerX - 15, centerY - radius - 30);
+    ctx.lineTo(centerX + 15, centerY - radius - 30);
+    ctx.closePath();
+    ctx.fillStyle = '#EF4444';
+    ctx.fill();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  };
+
+  const spin = async () => {
+    if (!canSpinWheel || isSpinning) return;
+
+    setIsSpinning(true);
+    setWonReward(null);
+    setShowResult(false);
+
+    // Calculate winning segment
+    const randomIndex = Math.floor(Math.random() * segments.length);
+    const winningSegment = segments[randomIndex];
+    
+    if (!winningSegment) {
+      setIsSpinning(false);
+      return;
+    }
+
+    // Calculate target rotation
+    const anglePerSegment = (2 * Math.PI) / segments.length;
+    const targetAngle = randomIndex * anglePerSegment;
+    const spinRotations = 5; // Number of full rotations
+    const finalRotation = (spinRotations * 2 * Math.PI) + targetAngle;
+
+    // Animate the wheel
+    const startTime = Date.now();
+    const duration = 3000; // 3 seconds
+    const startRotation = currentRotation;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for realistic spinning
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      
+      const newRotation = startRotation + (finalRotation * easeOut);
+      setCurrentRotation(newRotation);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setIsSpinning(false);
+        setWonReward(winningSegment.reward);
+        setShowResult(true);
+        onRewardWon?.(winningSegment.reward);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  };
+
+  const resetWheel = () => {
+    setCurrentRotation(0);
+    setWonReward(null);
+    setShowResult(false);
+  };
+
+  const handleClaimReward = () => {
+    if (wonReward) {
+      claimReward(wonReward.id);
+      setShowResult(false);
+      setWonReward(null);
+    }
+  };
+
+  useEffect(() => {
+    drawWheel();
+  }, [segments, currentRotation]);
+
+  const getMotivationalMessage = () => {
+    if (habitStreak === 0) return 'Starte deine Gewohnheit um Belohnungen freizuschalten!';
+    if (habitStreak < 7) return 'Weiter so! Erreiche 7 Tage für deine erste Belohnung!';
+    return `Fantastisch! ${habitStreak} Tage Streak berechtigt dich zum Drehen!`;
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="text-center mb-4">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Gift className="text-primary-500" size={20} />
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+            🎡 Belohnungsrad
+          </h2>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {habitName} - {habitStreak} Tage Streak
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+          {getMotivationalMessage()}
+        </p>
+      </div>
+
+      <div className="flex justify-center mb-4">
+        <div className="relative">
+          <canvas
+            ref={canvasRef}
+            width={280}
+            height={280}
+            className="border-2 border-gray-200 dark:border-gray-600 rounded-full touch-none"
+          />
+          {isSpinning && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full">
+              <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="text-center space-y-3">
+        <div className="flex justify-center gap-3">
+          <button
+            onClick={spin}
+            disabled={!canSpinWheel || isSpinning}
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium text-sm"
+          >
+            {isSpinning ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Dreht...
+              </>
+            ) : (
+              <>
+                <Play size={16} />
+                Rad drehen
+              </>
+            )}
+          </button>
+          
+          <button
+            onClick={resetWheel}
+            className="flex items-center gap-2 px-3 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-sm"
+          >
+            <RotateCcw size={16} />
+            Reset
+          </button>
+        </div>
+
+        {!canSpinWheel && (
+          <div className="text-xs text-gray-500 dark:text-gray-500 px-4">
+            {habitStreak === 0 
+              ? 'Vervollständige dein Habit um das Rad freizuschalten'
+              : getCooldownTimeRemaining()
+              ? `Cooldown: Noch ${getCooldownTimeRemaining()}`
+              : 'Erreiche einen Meilenstein um zu drehen'
+            }
+          </div>
+        )}
+
+        {/* Mobile-Optimized Probability Display */}
+        {segments.length > 0 && (
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-1"></div>
+              <div className="text-gray-600 dark:text-gray-400 text-xs">Klein</div>
+              <div className="font-bold text-sm">
+                {Math.round((segments.filter(s => s.reward.category === 'small').length / segments.length) * 100)}%
+              </div>
+            </div>
+            <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+              <div className="w-3 h-3 bg-orange-500 rounded-full mx-auto mb-1"></div>
+              <div className="text-gray-600 dark:text-gray-400 text-xs">Mittel</div>
+              <div className="font-bold text-sm">
+                {Math.round((segments.filter(s => s.reward.category === 'medium').length / segments.length) * 100)}%
+              </div>
+            </div>
+            <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <div className="w-3 h-3 bg-red-500 rounded-full mx-auto mb-1"></div>
+              <div className="text-gray-600 dark:text-gray-400 text-xs">Groß</div>
+              <div className="font-bold text-sm">
+                {Math.round((segments.filter(s => s.reward.category === 'large').length / segments.length) * 100)}%
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Result Modal */}
+      {showResult && wonReward && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full text-center">
+            <div className="text-6xl mb-4">🎉</div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              Glückwunsch!
+            </h3>
+            <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+              Du hast gewonnen:
+            </p>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+              <div className="text-3xl mb-2">{wonReward.icon || '🎁'}</div>
+              <div className="font-bold text-lg text-gray-900 dark:text-gray-100">
+                {wonReward.name}
+              </div>
+              {wonReward.description && (
+                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {wonReward.description}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResult(false)}
+                className="flex-1 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Später
+              </button>
+              <button
+                onClick={handleClaimReward}
+                className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
+              >
+                Belohnung einlösen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
