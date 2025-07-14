@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, ReactNode } from 'react';
 import { useAppContext } from './AppContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAppPreferences } from '../hooks/useLocalStorage';
@@ -43,7 +43,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   };
 
-  const triggerStreakDangerCheck = () => {
+  const triggerStreakDangerCheck = useCallback(() => {
     if (!notificationsEnabled) return;
 
     const today = new Date();
@@ -64,7 +64,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         }
       }
     });
-  };
+  }, [notificationsEnabled, state.habits, showStreakDangerWarning]);
 
   // Check for streak dangers when the app loads or habits change
   useEffect(() => {
@@ -72,7 +72,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     triggerStreakDangerCheck(); // Initial check
 
     return () => clearInterval(checkInterval);
-  }, [state.habits, notificationsEnabled]);
+  }, [state.habits, notificationsEnabled, triggerStreakDangerCheck]);
 
   const contextValue: NotificationContextType = {
     triggerMilestoneCheck,

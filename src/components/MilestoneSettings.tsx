@@ -18,10 +18,23 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
     label: ''
   });
   const [showAddForm, setShowAddForm] = useState(false);
+  const [inputValues, setInputValues] = useState({
+    days: '',
+    smallChance: '',
+    mediumChance: '',
+    largeChance: ''
+  });
 
   const handleEdit = (index: number) => {
     setEditingIndex(index);
-    setNewMilestone({ ...state.milestones[index] });
+    const milestone = state.milestones[index];
+    setNewMilestone({ ...milestone });
+    setInputValues({
+      days: milestone.days.toString(),
+      smallChance: milestone.smallChance.toString(),
+      mediumChance: milestone.mediumChance.toString(),
+      largeChance: milestone.largeChance.toString()
+    });
   };
 
   const handleSave = (index: number) => {
@@ -79,9 +92,15 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
       largeChance: 10,
       label: ''
     });
+    setInputValues({
+      days: '',
+      smallChance: '',
+      mediumChance: '',
+      largeChance: ''
+    });
   };
 
-  const validateProbabilities = (small: number, medium: number, large: number) => {
+  const _validateProbabilities = (small: number, medium: number, large: number) => {
     const total = small + medium + large;
     return total === 100;
   };
@@ -98,8 +117,11 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
             </label>
             <input
               type="number"
-              value={milestone.days}
-              onChange={(e) => setNewMilestone({ ...milestone, days: parseInt(e.target.value) || 0 })}
+              value={inputValues.days || milestone.days}
+              onChange={(e) => {
+                setInputValues(prev => ({ ...prev, days: e.target.value }));
+                setNewMilestone({ ...milestone, days: parseInt(e.target.value) || 0 });
+              }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               min="1"
               required
@@ -131,8 +153,11 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
                 <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[60px]">Klein:</span>
                 <input
                   type="number"
-                  value={milestone.smallChance}
-                  onChange={(e) => setNewMilestone({ ...milestone, smallChance: parseInt(e.target.value) || 0 })}
+                  value={inputValues.smallChance || milestone.smallChance}
+                  onChange={(e) => {
+                    setInputValues(prev => ({ ...prev, smallChance: e.target.value }));
+                    setNewMilestone({ ...milestone, smallChance: parseInt(e.target.value) || 0 });
+                  }}
                   className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   min="0"
                   max="100"
@@ -145,8 +170,11 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
                 <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[60px]">Mittel:</span>
                 <input
                   type="number"
-                  value={milestone.mediumChance}
-                  onChange={(e) => setNewMilestone({ ...milestone, mediumChance: parseInt(e.target.value) || 0 })}
+                  value={inputValues.mediumChance || milestone.mediumChance}
+                  onChange={(e) => {
+                    setInputValues(prev => ({ ...prev, mediumChance: e.target.value }));
+                    setNewMilestone({ ...milestone, mediumChance: parseInt(e.target.value) || 0 });
+                  }}
                   className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   min="0"
                   max="100"
@@ -159,8 +187,11 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
                 <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[60px]">Groß:</span>
                 <input
                   type="number"
-                  value={milestone.largeChance}
-                  onChange={(e) => setNewMilestone({ ...milestone, largeChance: parseInt(e.target.value) || 0 })}
+                  value={inputValues.largeChance || milestone.largeChance}
+                  onChange={(e) => {
+                    setInputValues(prev => ({ ...prev, largeChance: e.target.value }));
+                    setNewMilestone({ ...milestone, largeChance: parseInt(e.target.value) || 0 });
+                  }}
                   className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   min="0"
                   max="100"

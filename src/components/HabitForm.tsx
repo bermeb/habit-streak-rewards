@@ -19,6 +19,7 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onClose, onSave }) 
     icon: habit?.icon || '',
     color: habit?.color || '#3B82F6'
   });
+  const [targetValue, setTargetValue] = useState(habit?.target?.toString() || '');
   const [selectedTemplate, setSelectedTemplate] = useState<HabitTemplate | null>(null);
   const [showTemplates, setShowTemplates] = useState(!habit);
 
@@ -34,17 +35,23 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onClose, onSave }) 
         icon: selectedTemplate.icon,
         color: selectedTemplate.color
       });
+      setTargetValue(selectedTemplate.target?.toString() || '');
     }
   }, [selectedTemplate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    const finalFormData = {
+      ...formData,
+      target: parseInt(targetValue) || 0
+    };
+    
     if (habit) {
-      updateHabit(habit.id, formData);
-      onSave({ ...habit, ...formData });
+      updateHabit(habit.id, finalFormData);
+      onSave({ ...habit, ...finalFormData });
     } else {
-      const newHabit = addHabit(formData);
+      const newHabit = addHabit(finalFormData);
       onSave(newHabit);
     }
     
@@ -154,7 +161,7 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onClose, onSave }) 
                 </label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as Habit['type'] })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="boolean">Ja/Nein</option>
@@ -169,7 +176,7 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onClose, onSave }) 
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value as Habit['category'] })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="learning">Lernen</option>
@@ -187,8 +194,9 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onClose, onSave }) 
                 </label>
                 <input
                   type="number"
-                  value={formData.target}
-                  onChange={(e) => setFormData({ ...formData, target: parseInt(e.target.value) || 0 })}
+                  value={targetValue}
+                  onChange={(e) => setTargetValue(e.target.value)}
+                  onBlur={() => setFormData({ ...formData, target: parseInt(targetValue) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   min="0"
                 />

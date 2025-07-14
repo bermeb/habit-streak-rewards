@@ -9,7 +9,7 @@ export const useWheel = () => {
 
   const generateWheelSegments = (
     streak: number,
-    availableRewards: Reward[] = []
+    _availableRewards: Reward[] = []
   ): WheelSegment[] => {
     const probabilities = getRewardProbabilities(streak, state.milestones);
     const segments: WheelSegment[] = [];
@@ -21,7 +21,7 @@ export const useWheel = () => {
     };
 
     const totalProbability = probabilities.small + probabilities.medium + probabilities.large;
-    let currentAngle = 0;
+    let _currentAngle = 0;
 
     // Create segments based on probabilities
     Object.entries(probabilities).forEach(([category, probability]) => {
@@ -40,7 +40,7 @@ export const useWheel = () => {
             color: colors[category as keyof typeof colors],
             probability: probability / rewardsToShow
           });
-          currentAngle += anglePerReward;
+          _currentAngle += anglePerReward;
         });
       }
     });
@@ -126,12 +126,12 @@ export const useWheel = () => {
     dispatch({ type: 'SET_WHEEL_SPINNING', payload: false });
   };
 
-  const getSpinCost = (streak: number): number => {
+  const getSpinCost = (_streak: number): number => {
     // Higher streaks might have different costs or requirements
     return 0; // Free spins for now
   };
 
-  const getNextSpinAvailable = (streak: number): Date | null => {
+  const getNextSpinAvailable = (_streak: number): Date | null => {
     const wheelSettings = JSON.parse(localStorage.getItem('wheelSettings') || '{"minStreakForWheel": 7, "allowWheelOnlyAtMilestones": true, "cooldownHours": 24}');
     
     if (wheelSettings.cooldownHours > 0) {

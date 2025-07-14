@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import { 
   Calendar, 
-  TrendingUp, 
   Target, 
-  Award, 
   BarChart3,
-  PieChart,
-  Clock,
   Flame,
   Star,
   ChevronLeft,
@@ -23,21 +19,21 @@ import { HabitCalendar } from './HabitCalendar';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays } from 'date-fns';
 
 export const Statistics: React.FC = () => {
-  const { habits, getHabitStats } = useHabits();
+  const { habits } = useHabits();
   const { getOverallStats } = useStreaks();
   const { getRewardStats } = useRewards();
-  const { state } = useAppContext();
+  const { state: _state } = useAppContext();
   
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('week');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<'overview' | 'analytics' | 'calendar'>('overview');
   const [selectedHabitForCalendar, setSelectedHabitForCalendar] = useState<string | undefined>(undefined);
 
-  const overallStats = getOverallStats();
-  const rewardStats = getRewardStats();
+  const _overallStats = getOverallStats();
+  const _rewardStats = getRewardStats();
 
   const getPeriodStats = () => {
-    const now = new Date();
+    const _now = new Date();
     let startDate: Date;
     let endDate: Date;
 
@@ -258,7 +254,7 @@ export const Statistics: React.FC = () => {
               </h3>
               
               <div className="space-y-4">
-                {habitStats.map((habit, index) => (
+                {habitStats.map((habit) => (
                   <div key={habit.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{habit.icon}</span>

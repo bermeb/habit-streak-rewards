@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Play, RotateCcw, Gift, Star } from 'lucide-react';
-import { Reward, WheelSegment } from '../types';
+import { Reward } from '../types';
 import { useWheel } from '../hooks/useWheel';
 import { useRewards } from '../hooks/useRewards';
 
@@ -23,13 +23,13 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
   const [wonReward, setWonReward] = useState<Reward | null>(null);
   const [showResult, setShowResult] = useState(false);
   
-  const { generateWheelSegments, canSpinWheel: canSpin, calculateWheelRotation, getCooldownTimeRemaining } = useWheel();
-  const { claimReward, getRewardsByCategory } = useRewards();
+  const { generateWheelSegments, canSpinWheel: canSpin, getCooldownTimeRemaining } = useWheel();
+  const { claimReward } = useRewards();
 
   const segments = generateWheelSegments(habitStreak);
   const canSpinWheel = canSpin(habitStreak) && !disabled;
 
-  const drawWheel = () => {
+  const drawWheel = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -38,7 +38,7 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    const radius = Math.min(centerX, centerY) - 10;
+    const radius = Math.min(centerX, centerY) - 20;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -67,7 +67,7 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
     let currentAngle = currentRotation;
     const anglePerSegment = (2 * Math.PI) / segments.length;
 
-    segments.forEach((segment, index) => {
+    segments.forEach((segment) => {
       const startAngle = currentAngle;
       const endAngle = currentAngle + anglePerSegment;
 
@@ -82,7 +82,7 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Draw text
+      // Draw text with line breaks and better scaling
       const textAngle = startAngle + anglePerSegment / 2;
       const textX = centerX + Math.cos(textAngle) * (radius * 0.7);
       const textY = centerY + Math.sin(textAngle) * (radius * 0.7);
@@ -91,17 +91,48 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
       ctx.translate(textX, textY);
       ctx.rotate(textAngle + Math.PI / 2);
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 14px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(segment.reward.name, 0, 0);
+      
+      // Calculate font size based on segment size and text length
+      const baseSize = Math.min(16, radius / 8);
+      const scaledSize = Math.max(10, baseSize - (segment.reward.name.length > 15 ? 2 : 0));
+      ctx.font = `bold ${scaledSize}px Arial`;
+      
+      // Break text into lines if too long
+      const words = segment.reward.name.split(' ');
+      const lines = [];
+      let currentLine = '';
+      
+      for (const word of words) {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const testWidth = ctx.measureText(testLine).width;
+        
+        if (testWidth > radius * 0.4 && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+      
+      // Draw lines
+      const lineHeight = scaledSize * 1.2;
+      const startY = -(lines.length - 1) * lineHeight / 2;
+      
+      lines.forEach((line, index) => {
+        ctx.fillText(line, 0, startY + index * lineHeight);
+      });
+      
       ctx.restore();
 
-      // Draw reward icon
+      // Draw reward icon with better scaling
       const iconAngle = startAngle + anglePerSegment / 2;
       const iconX = centerX + Math.cos(iconAngle) * (radius * 0.4);
       const iconY = centerY + Math.sin(iconAngle) * (radius * 0.4);
 
-      ctx.font = '24px Arial';
+      const iconSize = Math.min(32, radius / 6);
+      ctx.font = `${iconSize}px Arial`;
       ctx.textAlign = 'center';
       ctx.fillText(segment.reward.icon || '🎁', iconX, iconY);
 
@@ -128,10 +159,11 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
     ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 2;
     ctx.stroke();
-  };
+  }, [segments, currentRotation]);
 
-  const spin = async () => {
-    if (!canSpinWheel || isSpinning) return;
+  const spin = async (isDemo = false) => {
+    if (!isDemo && (!canSpinWheel || isSpinning)) return;
+    if (isDemo && isSpinning) return;
 
     setIsSpinning(true);
     setWonReward(null);
@@ -173,7 +205,9 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
         setIsSpinning(false);
         setWonReward(winningSegment.reward);
         setShowResult(true);
-        onRewardWon?.(winningSegment.reward);
+        if (!isDemo) {
+          onRewardWon?.(winningSegment.reward);
+        }
       }
     };
 
@@ -196,7 +230,7 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
 
   useEffect(() => {
     drawWheel();
-  }, [segments, currentRotation]);
+  }, [drawWheel]);
 
   const getMotivationalMessage = () => {
     if (habitStreak === 0) return 'Starte deine Gewohnheit um Belohnungen freizuschalten!';
@@ -222,25 +256,26 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
       </div>
 
       <div className="flex justify-center mb-4">
-        <div className="relative">
+        <div className="relative w-full max-w-md">
           <canvas
             ref={canvasRef}
-            width={280}
-            height={280}
-            className="border-2 border-gray-200 dark:border-gray-600 rounded-full touch-none"
+            width={400}
+            height={400}
+            className="border-2 border-gray-200 dark:border-gray-600 rounded-full touch-none w-full h-auto"
+            style={{ aspectRatio: '1/1' }}
           />
           {isSpinning && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full">
-              <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
         </div>
       </div>
 
       <div className="text-center space-y-3">
-        <div className="flex justify-center gap-3">
+        <div className="flex justify-center gap-3 flex-wrap">
           <button
-            onClick={spin}
+            onClick={() => spin(false)}
             disabled={!canSpinWheel || isSpinning}
             className="flex items-center gap-2 px-5 py-2.5 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium text-sm"
           >
@@ -255,6 +290,15 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
                 Rad drehen
               </>
             )}
+          </button>
+          
+          <button
+            onClick={() => spin(true)}
+            disabled={isSpinning || segments.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium text-sm"
+          >
+            <Star size={16} />
+            Demo
           </button>
           
           <button

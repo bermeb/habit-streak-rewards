@@ -79,7 +79,7 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
                 Nächstes Ziel: {nextMilestone.days} Tage
               </span>
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                -{nextMilestone.days - habit.streak}
+                {nextMilestone.days - habit.streak > 0 ? `-${nextMilestone.days - habit.streak}` : '✓'}
               </span>
             </div>
             
@@ -173,7 +173,12 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
             <div className="text-gray-700 dark:text-gray-300">
               🎯 {achievedMilestones.length} Meilenstein{achievedMilestones.length > 1 ? 'e' : ''} erreicht!
               <br />
-              <span className="font-medium">Noch {nextMilestone.days - habit.streak} Tage bis zum nächsten Ziel!</span>
+              <span className="font-medium">
+                {nextMilestone.days - habit.streak > 0 
+                  ? `Noch ${nextMilestone.days - habit.streak} Tage bis zum nächsten Ziel!`
+                  : 'Nächstes Ziel erreicht!'
+                }
+              </span>
             </div>
           )}
           

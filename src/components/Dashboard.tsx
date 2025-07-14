@@ -19,6 +19,7 @@ export const Dashboard: React.FC = () => {
   const [showHabitForm, setShowHabitForm] = useState(false);
   const [_selectedHabitForWheel, _setSelectedHabitForWheel] = useState<string | null>(null);
   const [habitInputValues, setHabitInputValues] = useState<Record<string, number>>({});
+  const [habitInputStrings, setHabitInputStrings] = useState<Record<string, string>>({});
 
   const todayCompletions = getTodayCompletions();
   const streakLeaders = getStreakLeaders(3);
@@ -55,16 +56,22 @@ export const Dashboard: React.FC = () => {
     if (habit.type === 'boolean') {
       completeHabit(habit.id, true);
     } else {
-      const value = habitInputValues[habit.id] || habit.target || 0;
+      const stringValue = habitInputStrings[habit.id] || '';
+      const value = parseInt(stringValue) || habitInputValues[habit.id] || habit.target || 0;
       if (value > 0) {
         completeHabit(habit.id, value);
         setHabitInputValues(prev => ({ ...prev, [habit.id]: 0 }));
+        setHabitInputStrings(prev => ({ ...prev, [habit.id]: '' }));
       }
     }
   };
 
-  const handleInputChange = (habitId: string, value: number) => {
-    setHabitInputValues(prev => ({ ...prev, [habitId]: value }));
+  const handleInputChange = (habitId: string, value: string) => {
+    setHabitInputStrings(prev => ({ ...prev, [habitId]: value }));
+  };
+
+  const handleInputBlur = (habitId: string, value: string) => {
+    setHabitInputValues(prev => ({ ...prev, [habitId]: parseInt(value) || 0 }));
   };
 
   const getInputIcon = (type: Habit['type']) => {
@@ -156,7 +163,7 @@ export const Dashboard: React.FC = () => {
               <div className="space-y-3">
                 {habits.map((habit) => {
                   const isCompleted = isHabitCompletedToday(habit);
-                  const inputValue = habitInputValues[habit.id] || habit.target || 0;
+                  const inputValue = habitInputStrings[habit.id] !== undefined ? habitInputStrings[habit.id] : (habitInputValues[habit.id] || habit.target || 0).toString();
                   
                   return (
                     <div
@@ -191,7 +198,8 @@ export const Dashboard: React.FC = () => {
                               <input
                                 type="number"
                                 value={inputValue}
-                                onChange={(e) => handleInputChange(habit.id, parseInt(e.target.value) || 0)}
+                                onChange={(e) => handleInputChange(habit.id, e.target.value)}
+                                onBlur={(e) => handleInputBlur(habit.id, e.target.value)}
                                 placeholder={`Ziel: ${habit.target}`}
                                 className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                               />
@@ -212,7 +220,7 @@ export const Dashboard: React.FC = () => {
                         {!isCompleted && (
                           <button
                             onClick={() => handleCompleteHabit(habit)}
-                            disabled={habit.type !== 'boolean' && inputValue <= 0}
+                            disabled={habit.type !== 'boolean' && (parseInt(inputValue) || 0) <= 0}
                             className="flex-shrink-0 w-10 h-10 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                           >
                             <Circle size={20} className="text-gray-400" />

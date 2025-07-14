@@ -10,7 +10,8 @@
       "Bash(npm run type-check:*)",
       "Bash(npm run lint:*)",
       "Bash(grep:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(/dev/null)"
     ],
     "deny": []
   }

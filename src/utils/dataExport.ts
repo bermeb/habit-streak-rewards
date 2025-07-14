@@ -30,7 +30,7 @@ export const exportAppData = (state: AppState): void => {
   URL.revokeObjectURL(url);
 };
 
-export const validateImportData = (data: any): { isValid: boolean; error?: string } => {
+export const validateImportData = (data: unknown): { isValid: boolean; error?: string } => {
   if (!data || typeof data !== 'object') {
     return { isValid: false, error: 'Invalid file format' };
   }
@@ -89,7 +89,7 @@ export const importAppData = (file: File): Promise<ExportData> => {
         }
         
         resolve(data as ExportData);
-      } catch (error) {
+      } catch {
         reject(new Error('Failed to parse file: Invalid JSON format'));
       }
     };

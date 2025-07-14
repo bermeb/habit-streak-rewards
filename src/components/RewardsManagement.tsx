@@ -92,7 +92,7 @@ export const RewardsManagement: React.FC = () => {
     });
   };
 
-  const RewardCard = ({ reward, category }: { reward: Reward; category: string }) => (
+  const RewardCard = ({ reward }: { reward: Reward; category: string }) => (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
