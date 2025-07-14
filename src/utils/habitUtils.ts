@@ -169,11 +169,15 @@ export const canSpinWheel = (habit: Habit, milestones: Milestone[]): boolean => 
 };
 
 export const getRewardProbabilities = (streak: number, milestones: Milestone[]): { small: number; medium: number; large: number } => {
-  const currentMilestone = milestones
-    .filter(m => m.days <= streak)
-    .sort((a, b) => b.days - a.days)[0];
+  // Find the highest milestone that has been achieved (streak >= milestone.days)
+  const achievedMilestones = milestones
+    .filter(m => streak >= m.days)
+    .sort((a, b) => b.days - a.days);
+  
+  const currentMilestone = achievedMilestones[0];
   
   if (!currentMilestone) {
+    // Default probabilities when no milestones are achieved
     return { small: 70, medium: 25, large: 5 };
   }
   
