@@ -22,6 +22,7 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
   const [isSpinning, setIsSpinning] = useState(false);
   const [wonReward, setWonReward] = useState<Reward | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [isDemoSpin, setIsDemoSpin] = useState(false);
   
   const { generateWheelSegments, canSpinWheel: canSpin, getCooldownTimeRemaining } = useWheel();
   const { claimReward } = useRewards();
@@ -67,7 +68,7 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
     let currentAngle = currentRotation;
     const anglePerSegment = (2 * Math.PI) / segments.length;
 
-    segments.forEach((segment) => {
+    segments.forEach((segment, index) => {
       const startAngle = currentAngle;
       const endAngle = currentAngle + anglePerSegment;
 
@@ -86,6 +87,7 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
       const textAngle = startAngle + anglePerSegment / 2;
       const textX = centerX + Math.cos(textAngle) * (radius * 0.7);
       const textY = centerY + Math.sin(textAngle) * (radius * 0.7);
+      
 
       ctx.save();
       ctx.translate(textX, textY);
@@ -168,21 +170,18 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
     setIsSpinning(true);
     setWonReward(null);
     setShowResult(false);
+    setIsDemoSpin(isDemo);
 
-    // Calculate winning segment
-    const randomIndex = Math.floor(Math.random() * segments.length);
-    const winningSegment = segments[randomIndex];
-    
-    if (!winningSegment) {
+    if (segments.length === 0) {
       setIsSpinning(false);
       return;
     }
 
-    // Calculate target rotation
-    const anglePerSegment = (2 * Math.PI) / segments.length;
-    const targetAngle = randomIndex * anglePerSegment;
-    const spinRotations = 5; // Number of full rotations
-    const finalRotation = (spinRotations * 2 * Math.PI) + targetAngle;
+    // Simplest approach: just spin randomly and determine winner at the end
+    const spinRotations = 3 + Math.random() * 3; // 3-6 rotations
+    const randomAngle = Math.random() * 2 * Math.PI; // Random final position
+    const finalRotation = spinRotations * 2 * Math.PI + randomAngle;
+    
 
     // Animate the wheel
     const startTime = Date.now();
@@ -203,10 +202,34 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
         requestAnimationFrame(animate);
       } else {
         setIsSpinning(false);
-        setWonReward(winningSegment.reward);
+        
+        // Calculate which segment is actually at the pointer after the wheel stops
+        const finalWheelRotation = newRotation;
+        const anglePerSegment = (2 * Math.PI) / segments.length;
+        
+        // The pointer is at the top. Segments start at angle 0 and go clockwise.
+        // We need to find which segment is at the top after rotation.
+        // Normalize the rotation to [0, 2π]
+        const normalizedRotation = ((finalWheelRotation % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+        
+        // The first segment (index 0) starts at currentRotation = 0
+        // After the wheel rotates by finalWheelRotation, segment 0 is at angle finalWheelRotation
+        // The pointer is at the top (angle 3π/2 or -π/2)
+        // We want to find which segment is closest to 3π/2
+        const targetAngle = (3 * Math.PI / 2); // Top of circle
+        
+        // Find which segment is at the target angle
+        let winningIndex = Math.floor((targetAngle - normalizedRotation + (2 * Math.PI)) / anglePerSegment) % segments.length;
+        if (winningIndex < 0) winningIndex += segments.length;
+        
+        const actualWinningSegment = segments[winningIndex];
+        
+        setWonReward(actualWinningSegment.reward);
         setShowResult(true);
         if (!isDemo) {
-          onRewardWon?.(winningSegment.reward);
+          onRewardWon?.(actualWinningSegment.reward);
+          // Automatically claim the reward for normal spins
+          claimReward(actualWinningSegment.reward.id);
         }
       }
     };
@@ -218,15 +241,9 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
     setCurrentRotation(0);
     setWonReward(null);
     setShowResult(false);
+    setIsDemoSpin(false);
   };
 
-  const handleClaimReward = () => {
-    if (wonReward) {
-      claimReward(wonReward.id);
-      setShowResult(false);
-      setWonReward(null);
-    }
-  };
 
   useEffect(() => {
     drawWheel();
@@ -376,14 +393,16 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
                 onClick={() => setShowResult(false)}
                 className="flex-1 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                Später
+                {isDemoSpin ? 'Schließen' : 'Später'}
               </button>
-              <button
-                onClick={handleClaimReward}
-                className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
-              >
-                Belohnung einlösen
-              </button>
+              {!isDemoSpin && (
+                <button
+                  disabled={true}
+                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg cursor-default"
+                >
+                  ✓ Belohnung erhalten
+                </button>
+              )}
             </div>
           </div>
         </div>
