@@ -14,7 +14,9 @@
       "Bash(/dev/null)",
       "Bash(npm ls:*)",
       "Bash(pkill:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(magick:*)",
+      "Bash(convert:*)"
     ],
     "deny": []
   }

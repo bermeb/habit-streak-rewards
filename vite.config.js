@@ -9,7 +9,17 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: [
+        'favicon.ico',
+        'favicon-16x16.png',
+        'favicon-32x32.png',
+        'apple-touch-icon-180x180.png',
+        'apple-touch-icon-167x167.png',
+        'apple-touch-icon-152x152.png',
+        'safari-pinned-tab.svg',
+        'maskable-icon-512x512.png',
+        'maskable-icon-192x192.png'
+      ],
       manifest: {
         name: 'Habit Streak Rewards',
         short_name: 'Habit Tracker',
@@ -24,12 +34,26 @@ export default defineConfig(({ mode }) => ({
           {
             src: 'icon-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'icon-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'maskable-icon-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
+          {
+            src: 'maskable-icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },
