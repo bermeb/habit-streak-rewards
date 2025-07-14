@@ -3,6 +3,8 @@ import { Play, RotateCcw, Gift, Star } from 'lucide-react';
 import { Reward } from '../types';
 import { useWheel } from '../hooks/useWheel';
 import { useRewards } from '../hooks/useRewards';
+import { getRewardProbabilities, calculateEffectiveStreak, formatPercentage } from '../utils/habitUtils';
+import { useAppContext } from '../context/AppContext';
 
 interface RewardWheelProps {
   habitStreak: number;
@@ -26,9 +28,17 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
   
   const { generateWheelSegments, canSpinWheel: canSpin, getCooldownTimeRemaining } = useWheel();
   const { claimReward } = useRewards();
+  const { state } = useAppContext();
 
-  const segments = generateWheelSegments(habitStreak);
-  const canSpinWheel = canSpin(habitStreak) && !disabled;
+  // Calculate effective streak based on user settings
+  const effectiveStreak = calculateEffectiveStreak(
+    state.habits, 
+    state.settings.streakCalculationMode, 
+    state.milestones
+  );
+  
+  const segments = generateWheelSegments(effectiveStreak);
+  const canSpinWheel = canSpin(effectiveStreak) && !disabled;
 
   const drawWheel = useCallback(() => {
     const canvas = canvasRef.current;
@@ -250,9 +260,20 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
   }, [drawWheel]);
 
   const getMotivationalMessage = () => {
-    if (habitStreak === 0) return 'Starte deine Gewohnheit um Belohnungen freizuschalten!';
-    if (habitStreak < 7) return 'Weiter so! Erreiche 7 Tage für deine erste Belohnung!';
-    return `Fantastisch! ${habitStreak} Tage Streak berechtigt dich zum Drehen!`;
+    if (effectiveStreak === 0) return 'Starte deine Gewohnheit um Belohnungen freizuschalten!';
+    if (effectiveStreak < 7) return 'Weiter so! Erreiche 7 Tage für deine erste Belohnung!';
+    
+    if (state.settings.showNextMilestoneProbabilities) {
+      const nextMilestone = state.milestones
+        .filter(m => m.days > effectiveStreak)
+        .sort((a, b) => a.days - b.days)[0];
+      
+      if (nextMilestone) {
+        return `Zeigt Belohnungen für ${nextMilestone.label} (${nextMilestone.days} Tage)`;
+      }
+    }
+    
+    return `Fantastisch! ${effectiveStreak} Tage Streak berechtigt dich zum Drehen!`;
   };
 
   return (
@@ -265,7 +286,10 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
           </h2>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {habitName} - {habitStreak} Tage Streak
+          {state.settings.streakCalculationMode === 'highest' 
+            ? `Höchster Streak: ${effectiveStreak} Tage`
+            : `Alle Habits erreicht: ${effectiveStreak} Tage`
+          }
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
           {getMotivationalMessage()}
@@ -339,31 +363,38 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
         )}
 
         {/* Mobile-Optimized Probability Display */}
-        {segments.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-1"></div>
-              <div className="text-gray-600 dark:text-gray-400 text-xs">Klein</div>
-              <div className="font-bold text-sm">
-                {Math.round((segments.filter(s => s.reward.category === 'small').length / segments.length) * 100)}%
+        {segments.length > 0 && (() => {
+          const probabilities = getRewardProbabilities(
+            effectiveStreak, 
+            state.milestones, 
+            state.settings.showNextMilestoneProbabilities
+          );
+          return (
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-1"></div>
+                <div className="text-gray-600 dark:text-gray-400 text-xs">Klein</div>
+                <div className="font-bold text-sm">
+                  {formatPercentage(probabilities.small)}
+                </div>
+              </div>
+              <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                <div className="w-3 h-3 bg-orange-500 rounded-full mx-auto mb-1"></div>
+                <div className="text-gray-600 dark:text-gray-400 text-xs">Mittel</div>
+                <div className="font-bold text-sm">
+                  {formatPercentage(probabilities.medium)}
+                </div>
+              </div>
+              <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <div className="w-3 h-3 bg-red-500 rounded-full mx-auto mb-1"></div>
+                <div className="text-gray-600 dark:text-gray-400 text-xs">Groß</div>
+                <div className="font-bold text-sm">
+                  {formatPercentage(probabilities.large)}
+                </div>
               </div>
             </div>
-            <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-              <div className="w-3 h-3 bg-orange-500 rounded-full mx-auto mb-1"></div>
-              <div className="text-gray-600 dark:text-gray-400 text-xs">Mittel</div>
-              <div className="font-bold text-sm">
-                {Math.round((segments.filter(s => s.reward.category === 'medium').length / segments.length) * 100)}%
-              </div>
-            </div>
-            <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
-              <div className="w-3 h-3 bg-red-500 rounded-full mx-auto mb-1"></div>
-              <div className="text-gray-600 dark:text-gray-400 text-xs">Groß</div>
-              <div className="font-bold text-sm">
-                {Math.round((segments.filter(s => s.reward.category === 'large').length / segments.length) * 100)}%
-              </div>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Result Modal */}

@@ -11,6 +11,7 @@ const RewardsManagement = lazy(() => import('./components/RewardsManagement').th
 const Statistics = lazy(() => import('./components/Statistics').then(m => ({ default: m.Statistics })));
 const DataManagement = lazy(() => import('./components/DataManagement').then(m => ({ default: m.DataManagement })));
 const NotificationSettings = lazy(() => import('./components/NotificationSettings').then(m => ({ default: m.NotificationSettings })));
+const WheelSettings = lazy(() => import('./components/WheelSettings').then(m => ({ default: m.WheelSettings })));
 const QuickCheck = lazy(() => import('./components/QuickCheck').then(m => ({ default: m.QuickCheck })));
 import { useAppPreferences } from './hooks/useLocalStorage';
 import { getNavigationAriaLabels, handleKeyboardNavigation } from './utils/accessibility';
@@ -144,6 +145,7 @@ function App() {
                 <div className="space-y-6 lg:space-y-8">
                   <DataManagement />
                   <NotificationSettings />
+                  <WheelSettings />
                   <MilestoneSettings />
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">

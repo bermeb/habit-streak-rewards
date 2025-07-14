@@ -168,7 +168,20 @@ export const canSpinWheel = (habit: Habit, milestones: Milestone[]): boolean => 
   return achievedMilestones.length > 0;
 };
 
-export const getRewardProbabilities = (streak: number, milestones: Milestone[]): { small: number; medium: number; large: number } => {
+export const getRewardProbabilities = (streak: number, milestones: Milestone[], showNext: boolean = false): { small: number; medium: number; large: number } => {
+  if (showNext) {
+    // Show probabilities for the next milestone to reach
+    const nextMilestone = getNextMilestone(streak, milestones);
+    if (nextMilestone) {
+      return {
+        small: nextMilestone.smallChance,
+        medium: nextMilestone.mediumChance,
+        large: nextMilestone.largeChance
+      };
+    }
+    // If no next milestone, show the highest achieved one
+  }
+  
   // Find the highest milestone that has been achieved (streak >= milestone.days)
   const achievedMilestones = milestones
     .filter(m => streak >= m.days)
@@ -186,6 +199,30 @@ export const getRewardProbabilities = (streak: number, milestones: Milestone[]):
     medium: currentMilestone.mediumChance,
     large: currentMilestone.largeChance
   };
+};
+
+export const calculateEffectiveStreak = (habits: Habit[], mode: 'highest' | 'all', milestones: Milestone[]): number => {
+  if (habits.length === 0) return 0;
+  
+  if (mode === 'highest') {
+    // Return the highest streak among all habits
+    return Math.max(...habits.map(h => h.streak));
+  } else {
+    // Return the highest milestone where ALL habits have reached that milestone
+    const sortedMilestones = milestones.sort((a, b) => a.days - b.days);
+    
+    for (let i = sortedMilestones.length - 1; i >= 0; i--) {
+      const milestone = sortedMilestones[i];
+      const allHabitsReachedMilestone = habits.every(habit => habit.streak >= milestone.days);
+      
+      if (allHabitsReachedMilestone) {
+        return milestone.days;
+      }
+    }
+    
+    // If no milestones are reached by all habits, return the minimum streak
+    return Math.min(...habits.map(h => h.streak));
+  }
 };
 
 export const formatHabitValue = (habit: Habit, value: number | boolean): string => {
@@ -213,4 +250,14 @@ export const generateHabitId = (): string => {
 
 export const generateRewardId = (): string => {
   return `reward-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+export const formatPercentage = (value: number): string => {
+  // Format percentage with German locale (comma as decimal separator)
+  // Remove unnecessary decimals (e.g., 60,0% becomes 60%)
+  const formatted = value.toLocaleString('de-DE', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1
+  });
+  return `${formatted}%`;
 };

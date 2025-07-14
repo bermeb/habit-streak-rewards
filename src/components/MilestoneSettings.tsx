@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit3, Trash2, Save, X, Target } from 'lucide-react';
 import { Milestone } from '../types';
 import { useAppContext } from '../context/AppContext';
+import { formatPercentage } from '../utils/habitUtils';
 
 interface MilestoneSettingsProps {
   className?: string;
@@ -40,13 +41,13 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
   const handleSave = (index: number) => {
     if (newMilestone.days <= 0) return;
     
-    // Ensure probabilities add up to 100
+    // Ensure probabilities add up to 100 (allow small rounding tolerance)
     const total = newMilestone.smallChance + newMilestone.mediumChance + newMilestone.largeChance;
-    if (total !== 100) {
+    if (Math.abs(total - 100) > 0.1) {
       const scale = 100 / total;
-      newMilestone.smallChance = Math.round(newMilestone.smallChance * scale);
-      newMilestone.mediumChance = Math.round(newMilestone.mediumChance * scale);
-      newMilestone.largeChance = 100 - newMilestone.smallChance - newMilestone.mediumChance;
+      newMilestone.smallChance = Math.round((newMilestone.smallChance * scale) * 10) / 10;
+      newMilestone.mediumChance = Math.round((newMilestone.mediumChance * scale) * 10) / 10;
+      newMilestone.largeChance = Math.round((100 - newMilestone.smallChance - newMilestone.mediumChance) * 10) / 10;
     }
 
     dispatch({ type: 'UPDATE_MILESTONE', payload: { index, milestone: newMilestone } });
@@ -56,13 +57,13 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
   const handleAdd = () => {
     if (newMilestone.days <= 0) return;
     
-    // Ensure probabilities add up to 100
+    // Ensure probabilities add up to 100 (allow small rounding tolerance)
     const total = newMilestone.smallChance + newMilestone.mediumChance + newMilestone.largeChance;
-    if (total !== 100) {
+    if (Math.abs(total - 100) > 0.1) {
       const scale = 100 / total;
-      newMilestone.smallChance = Math.round(newMilestone.smallChance * scale);
-      newMilestone.mediumChance = Math.round(newMilestone.mediumChance * scale);
-      newMilestone.largeChance = 100 - newMilestone.smallChance - newMilestone.mediumChance;
+      newMilestone.smallChance = Math.round((newMilestone.smallChance * scale) * 10) / 10;
+      newMilestone.mediumChance = Math.round((newMilestone.mediumChance * scale) * 10) / 10;
+      newMilestone.largeChance = Math.round((100 - newMilestone.smallChance - newMilestone.mediumChance) * 10) / 10;
     }
 
     dispatch({ type: 'ADD_MILESTONE', payload: newMilestone });
@@ -153,10 +154,11 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
                 <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[60px]">Klein:</span>
                 <input
                   type="number"
+                  step="0.1"
                   value={inputValues.smallChance || milestone.smallChance}
                   onChange={(e) => {
                     setInputValues(prev => ({ ...prev, smallChance: e.target.value }));
-                    setNewMilestone({ ...milestone, smallChance: parseInt(e.target.value) || 0 });
+                    setNewMilestone({ ...milestone, smallChance: parseFloat(e.target.value) || 0 });
                   }}
                   className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   min="0"
@@ -170,10 +172,11 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
                 <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[60px]">Mittel:</span>
                 <input
                   type="number"
+                  step="0.1"
                   value={inputValues.mediumChance || milestone.mediumChance}
                   onChange={(e) => {
                     setInputValues(prev => ({ ...prev, mediumChance: e.target.value }));
-                    setNewMilestone({ ...milestone, mediumChance: parseInt(e.target.value) || 0 });
+                    setNewMilestone({ ...milestone, mediumChance: parseFloat(e.target.value) || 0 });
                   }}
                   className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   min="0"
@@ -187,10 +190,11 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
                 <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[60px]">Groß:</span>
                 <input
                   type="number"
+                  step="0.1"
                   value={inputValues.largeChance || milestone.largeChance}
                   onChange={(e) => {
                     setInputValues(prev => ({ ...prev, largeChance: e.target.value }));
-                    setNewMilestone({ ...milestone, largeChance: parseInt(e.target.value) || 0 });
+                    setNewMilestone({ ...milestone, largeChance: parseFloat(e.target.value) || 0 });
                   }}
                   className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   min="0"
@@ -200,9 +204,9 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
               </div>
             </div>
             
-            {totalProbability !== 100 && (
+            {Math.abs(totalProbability - 100) > 0.1 && (
               <div className="text-sm text-red-500 mt-1">
-                Gesamt: {totalProbability}% (sollte 100% sein)
+                Gesamt: {formatPercentage(totalProbability)} (sollte 100% sein)
               </div>
             )}
           </div>
@@ -283,19 +287,19 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <span className="text-gray-600 dark:text-gray-400">
-                        {milestone.smallChance}%
+                        {formatPercentage(milestone.smallChance)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
                       <span className="text-gray-600 dark:text-gray-400">
-                        {milestone.mediumChance}%
+                        {formatPercentage(milestone.mediumChance)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                       <span className="text-gray-600 dark:text-gray-400">
-                        {milestone.largeChance}%
+                        {formatPercentage(milestone.largeChance)}
                       </span>
                     </div>
                   </div>

@@ -46,6 +46,8 @@ export interface UserSettings {
   language: 'en' | 'de';
   reminderTime?: string; // HH:MM format
   weekStartsOn: 0 | 1; // 0 = Sunday, 1 = Monday
+  streakCalculationMode: 'highest' | 'all'; // highest = use highest streak, all = require all habits to reach milestone
+  showNextMilestoneProbabilities: boolean; // show next milestone instead of current
 }
 
 export interface AppState {

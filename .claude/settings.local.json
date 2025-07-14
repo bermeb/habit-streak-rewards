@@ -16,7 +16,8 @@
       "Bash(pkill:*)",
       "Bash(true)",
       "Bash(magick:*)",
-      "Bash(convert:*)"
+      "Bash(convert:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }

@@ -13,7 +13,9 @@ const initialState: AppState = {
     notifications: true,
     soundEnabled: true,
     language: 'de',
-    weekStartsOn: 1
+    weekStartsOn: 1,
+    streakCalculationMode: 'highest',
+    showNextMilestoneProbabilities: false
   },
   statistics: {
     totalHabitsCompleted: 0,
