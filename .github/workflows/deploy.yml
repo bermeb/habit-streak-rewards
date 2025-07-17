@@ -17,7 +17,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '22'
         cache: 'npm'
 
     - name: Install dependencies
@@ -26,26 +26,8 @@ jobs:
     - name: Lint code
       run: npm run lint
 
+    - name: Type check
+      run: npm run type-check
+
     - name: Build application
       run: npm run build
-
-    - name: Deploy to GitHub Pages
-      if: github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./dist
-        cname: # Add your custom domain here if you have one
-
-    # Optional: Deploy to Netlify
-    # - name: Deploy to Netlify
-    #   if: github.ref == 'refs/heads/main'
-    #   uses: nwtgck/actions-netlify@v2
-    #   with:
-    #     publish-dir: './dist'
-    #     production-branch: main
-    #     github-token: ${{ secrets.GITHUB_TOKEN }}
-    #     deploy-message: "Deploy from GitHub Actions"
-    #   env:
-    #     NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-    #     NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
