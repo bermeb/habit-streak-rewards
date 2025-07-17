@@ -196,9 +196,11 @@ function App() {
           <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">H</span>
-              </div>
+              <img
+                src="/icon-48x48.png"
+                alt="Habit Tracker"
+                className="w-8 h-8 rounded-lg"
+              />
               <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Habit Tracker
               </span>
