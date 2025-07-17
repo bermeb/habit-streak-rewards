@@ -188,58 +188,94 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
       return;
     }
 
-    // Simplest approach: just spin randomly and determine winner at the end
-    const spinRotations = 3 + Math.random() * 3; // 3-6 rotations
-    const randomAngle = Math.random() * 2 * Math.PI; // Random final position
-    const finalRotation = spinRotations * 2 * Math.PI + randomAngle;
+    // Use milestone percentages to determine winner first
+    const probabilities = getRewardProbabilities(effectiveStreak, state.milestones);
+    const randomValue = Math.random() * 100;
+    
+    let selectedCategory: Reward['category'];
+    if (randomValue < probabilities.small) {
+      selectedCategory = 'small';
+    } else if (randomValue < probabilities.small + probabilities.medium) {
+      selectedCategory = 'medium';
+    } else {
+      selectedCategory = 'large';
+    }
+    
+    // Get all rewards in the selected category
+    const categorySegments = segments.filter(s => s.reward.category === selectedCategory);
+    
+    // Randomly select one reward from that category
+    const randomRewardIndex = Math.floor(Math.random() * categorySegments.length);
+    const predeterminedWinningSegment = categorySegments[randomRewardIndex] || segments[0];
+    
+    // Find the index of this segment in the full segments array
+    const winningSegmentIndex = segments.findIndex(s => s.reward.id === predeterminedWinningSegment.reward.id);
+    
+    // Calculate the angle for this segment
+    const anglePerSegment = (2 * Math.PI) / segments.length;
+    
+    // Two-phase spinning: Fast spin + Precise positioning
+    // Phase 1: Fast spinning (3-4 rotations, 2-2.5 seconds)
+    const fastSpinRotations = 3 + Math.random(); // 3-4 rotations
+    const fastSpinDuration = 2000 + Math.random() * 500; // 2-2.5 seconds
+    const fastSpinTarget = currentRotation + fastSpinRotations * 2 * Math.PI;
+    
+    // Phase 2: Calculate exact target position for winning segment center
+    const pointerAngle = -Math.PI / 2; // Top of wheel
+    const winningSegmentCenterOffset = winningSegmentIndex * anglePerSegment + (anglePerSegment / 2);
+    const targetFinalRotation = pointerAngle - winningSegmentCenterOffset;
+    
+    // Find the closest equivalent angle to the fast spin target
+    const fastSpinNormalized = ((fastSpinTarget % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+    const targetNormalized = ((targetFinalRotation % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+    
+    // Calculate final positioning adjustment
+    let finalAdjustment = targetNormalized - fastSpinNormalized;
+    if (finalAdjustment > Math.PI) finalAdjustment -= 2 * Math.PI;
+    if (finalAdjustment < -Math.PI) finalAdjustment += 2 * Math.PI;
+    
+    const slowPositionDuration = 1500 + Math.random() * 1000; // 1.5-2.5 seconds
     
 
-    // Animate the wheel
+    // Two-phase animation
     const startTime = Date.now();
-    const duration = 3000; // 3 seconds
     const startRotation = currentRotation;
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
       
-      // Easing function for realistic spinning
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      
-      const newRotation = startRotation + (finalRotation * easeOut);
-      setCurrentRotation(newRotation);
-
-      if (progress < 1) {
+      if (elapsed < fastSpinDuration) {
+        // Phase 1: Fast spinning with gradual slowdown at the end
+        const progress = elapsed / fastSpinDuration;
+        const easeOut = 1 - Math.pow(1 - progress, 1.5); // Gradual slowdown
+        const rotation = startRotation + (fastSpinTarget - startRotation) * easeOut;
+        setCurrentRotation(rotation);
         requestAnimationFrame(animate);
       } else {
-        setIsSpinning(false);
+        // Phase 2: Precise positioning with smooth deceleration
+        const phaseElapsed = elapsed - fastSpinDuration;
+        const phaseProgress = Math.min(phaseElapsed / slowPositionDuration, 1);
         
-        // Use milestone percentages to determine winner (not visual wheel position)
-        const probabilities = getRewardProbabilities(effectiveStreak, state.milestones);
-        const randomValue = Math.random() * 100;
+        // Smoother easing function for more natural deceleration
+        const easeOut = phaseProgress < 0.5 
+          ? 2 * phaseProgress * phaseProgress
+          : 1 - Math.pow(-2 * phaseProgress + 2, 3) / 2;
         
-        let selectedCategory: Reward['category'];
-        if (randomValue < probabilities.small) {
-          selectedCategory = 'small';
-        } else if (randomValue < probabilities.small + probabilities.medium) {
-          selectedCategory = 'medium';
+        const rotation = fastSpinTarget + finalAdjustment * easeOut;
+        setCurrentRotation(rotation);
+        
+        if (phaseProgress >= 1) {
+          // Animation complete - landed on winning segment
+          setIsSpinning(false);
+          setWonReward(predeterminedWinningSegment.reward);
+          setShowResult(true);
+          if (!isDemo) {
+            onRewardWon?.(predeterminedWinningSegment.reward);
+            // Automatically claim the reward for normal spins
+            claimReward(predeterminedWinningSegment.reward.id);
+          }
         } else {
-          selectedCategory = 'large';
-        }
-        
-        // Get all rewards in the selected category
-        const categorySegments = segments.filter(s => s.reward.category === selectedCategory);
-        
-        // Randomly select one reward from that category
-        const randomRewardIndex = Math.floor(Math.random() * categorySegments.length);
-        const actualWinningSegment = categorySegments[randomRewardIndex] || segments[0];
-        
-        setWonReward(actualWinningSegment.reward);
-        setShowResult(true);
-        if (!isDemo) {
-          onRewardWon?.(actualWinningSegment.reward);
-          // Automatically claim the reward for normal spins
-          claimReward(actualWinningSegment.reward.id);
+          requestAnimationFrame(animate);
         }
       }
     };

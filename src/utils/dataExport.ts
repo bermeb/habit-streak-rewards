@@ -6,7 +6,7 @@ export interface ExportData {
   appData: AppState;
 }
 
-export const CURRENT_VERSION = '1.0.0';
+export const CURRENT_VERSION = '1.1.0';
 
 export const exportAppData = (state: AppState): void => {
   const exportData: ExportData = {
@@ -47,7 +47,7 @@ export const validateImportData = (data: unknown): { isValid: boolean; error?: s
 
   const appData = dataObj.appData as Record<string, unknown>;
 
-  const requiredFields = ['habits', 'rewards', 'milestones', 'completions', 'settings', 'statistics'];
+  const requiredFields = ['habits', 'rewards', 'milestones', 'completions', 'settings', 'statistics', 'wheelState'];
   for (const field of requiredFields) {
     if (!(field in appData)) {
       return { isValid: false, error: `Missing required field: ${field}` };
@@ -72,6 +72,16 @@ export const validateImportData = (data: unknown): { isValid: boolean; error?: s
   // Validate completions structure
   if (!Array.isArray(appData.completions)) {
     return { isValid: false, error: 'Invalid completions data structure' };
+  }
+
+  // Validate wheelState structure
+  if (!appData.wheelState || typeof appData.wheelState !== 'object') {
+    return { isValid: false, error: 'Invalid wheelState data structure' };
+  }
+
+  // Validate settings structure
+  if (!appData.settings || typeof appData.settings !== 'object') {
+    return { isValid: false, error: 'Invalid settings data structure' };
   }
 
   return { isValid: true };

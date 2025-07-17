@@ -107,9 +107,21 @@ export const DataManagement: React.FC = () => {
               </span>
             </div>
             <div>
+              <span className="text-gray-600 dark:text-gray-400">Meilensteine:</span>
+              <span className="ml-2 font-medium text-gray-900 dark:text-gray-100">
+                {state.milestones.length}
+              </span>
+            </div>
+            <div>
               <span className="text-gray-600 dark:text-gray-400">Erledigungen:</span>
               <span className="ml-2 font-medium text-gray-900 dark:text-gray-100">
                 {state.completions.length}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Einstellungen:</span>
+              <span className="ml-2 font-medium text-gray-900 dark:text-gray-100">
+                ✓ Inkludiert
               </span>
             </div>
             <div>
@@ -127,8 +139,18 @@ export const DataManagement: React.FC = () => {
             📤 Daten exportieren
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Erstelle ein Backup aller deiner Habits, Belohnungen und Fortschritte als JSON-Datei.
+            Erstelle ein vollständiges Backup aller deiner Daten als JSON-Datei:
           </p>
+          <div className="bg-gray-100 dark:bg-gray-600 rounded-lg p-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div>✓ Alle Habits mit aktuellen Streaks</div>
+              <div>✓ Belohnungen & Kategorien</div>
+              <div>✓ Meilenstein-Einstellungen</div>
+              <div>✓ Benutzereinstellungen & Theme</div>
+              <div>✓ Vollständige Erledigungshistorie</div>
+              <div>✓ Statistiken & Rad-Status</div>
+            </div>
+          </div>
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
@@ -144,7 +166,7 @@ export const DataManagement: React.FC = () => {
             📥 Daten importieren
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Lade eine zuvor erstellte Backup-Datei hoch, um deine Daten wiederherzustellen.
+            Lade eine zuvor erstellte Backup-Datei hoch, um alle deine Daten wiederherzustellen: Habits, Belohnungen, Meilensteine, Einstellungen und Fortschritte.
             <span className="block text-yellow-600 dark:text-yellow-400 mt-1">
               ⚠️ Achtung: Dies überschreibt alle aktuellen Daten!
             </span>
