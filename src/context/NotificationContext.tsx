@@ -1,22 +1,10 @@
-import React, { createContext, useContext, useEffect, useCallback, ReactNode } from 'react';
-import { useAppContext } from './AppContext';
+import React, { useEffect, useCallback, ReactNode } from 'react';
+import { useAppContext } from '../hooks/useAppContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAppPreferences } from '../hooks/useLocalStorage';
-
-interface NotificationContextType {
-  triggerMilestoneCheck: (habitId: string, newStreak: number) => void;
-  triggerStreakDangerCheck: () => void;
-}
-
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-
-export const useNotificationContext = () => {
-  const context = useContext(NotificationContext);
-  if (!context) {
-    throw new Error('useNotificationContext must be used within a NotificationProvider');
-  }
-  return context;
-};
+import { format, differenceInDays, parseISO } from 'date-fns';
+import { isHabitCompletedToday } from '../utils/habitUtils';
+import { NotificationContext, NotificationContextType } from './NotificationContextDefinition';
 
 interface NotificationProviderProps {
   children: ReactNode;
@@ -46,33 +34,65 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const triggerStreakDangerCheck = useCallback(() => {
     if (!notificationsEnabled) return;
 
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const now = new Date();
+    const today = format(now, 'yyyy-MM-dd');
     
     state.habits.forEach(habit => {
       if (habit.streak > 0 && habit.lastCompleted) {
-        const lastCompletedDate = new Date(habit.lastCompleted);
-        const daysSinceCompleted = Math.floor((today.getTime() - lastCompletedDate.getTime()) / (1000 * 60 * 60 * 24));
+        const lastCompletedDate = parseISO(habit.lastCompleted);
+        const daysSinceCompleted = differenceInDays(now, lastCompletedDate);
         
-        // Warn if they haven't completed today and it's been more than 0 days
-        if (daysSinceCompleted >= 1) {
-          const daysLeft = Math.max(0, 2 - daysSinceCompleted); // Grace period of 1 day
-          if (daysLeft <= 1) {
+        // Check if habit was completed today
+        const completedToday = isHabitCompletedToday(habit);
+        
+        // Only warn if they haven't completed today AND it's been 1+ days since last completion
+        if (!completedToday && daysSinceCompleted >= 1) {
+          // Calculate how many days left before streak is lost
+          const daysLeft = Math.max(0, 1 - (daysSinceCompleted - 1));
+          
+          // Only show warning once per day to avoid spam
+          const lastWarningKey = `streak-warning-${habit.id}-${today}`;
+          const lastWarning = localStorage.getItem(lastWarningKey);
+          
+          if (!lastWarning) {
             showStreakDangerWarning(habit.name, daysLeft);
+            localStorage.setItem(lastWarningKey, 'shown');
           }
         }
       }
     });
   }, [notificationsEnabled, state.habits, showStreakDangerWarning]);
 
+  // Register background sync for streak checking
+  const scheduleBackgroundSync = useCallback(() => {
+    if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+      navigator.serviceWorker.ready.then(registration => {
+        return (registration as any).sync.register('streak-danger-check');
+      }).catch(error => {
+        console.error('Background sync registration failed:', error);
+      });
+    }
+  }, []);
+
   // Check for streak dangers when the app loads or habits change
   useEffect(() => {
-    const checkInterval = setInterval(triggerStreakDangerCheck, 1000 * 60 * 60); // Check every hour
-    triggerStreakDangerCheck(); // Initial check
+    // Initial check
+    triggerStreakDangerCheck();
+    
+    // Schedule background sync for when app is closed
+    scheduleBackgroundSync();
+    
+    // Check every hour, but only during active hours (8 AM to 10 PM)
+    const checkInterval = setInterval(() => {
+      const currentHour = new Date().getHours();
+      if (currentHour >= 8 && currentHour <= 22) {
+        triggerStreakDangerCheck();
+        scheduleBackgroundSync(); // Re-schedule background sync
+      }
+    }, 1000 * 60 * 60); // Check every hour
 
     return () => clearInterval(checkInterval);
-  }, [state.habits, notificationsEnabled, triggerStreakDangerCheck]);
+  }, [state.habits, notificationsEnabled, triggerStreakDangerCheck, scheduleBackgroundSync]);
 
   const contextValue: NotificationContextType = {
     triggerMilestoneCheck,

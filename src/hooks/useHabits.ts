@@ -1,5 +1,5 @@
 import { useAppContext } from '../context/AppContext';
-import { Habit, HabitTemplate } from '../types';
+import { Habit, HabitTemplate } from '@/types';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { 
   generateHabitId, 
@@ -129,20 +129,26 @@ export const useHabits = () => {
   const checkStreakDangers = () => {
     if (!notificationsEnabled) return;
 
-    const today = new Date();
+    const now = new Date();
+    const today = format(now, 'yyyy-MM-dd');
     
     state.habits.forEach(habit => {
       if (habit.streak > 0 && habit.lastCompleted) {
         const lastCompletedDate = parseISO(habit.lastCompleted);
-        const daysSinceCompleted = differenceInDays(today, lastCompletedDate);
+        const daysSinceCompleted = differenceInDays(now, lastCompletedDate);
         
-        // Warn if they haven't completed today and it's been 1+ days
-        // Give a grace period but warn before streak is lost
-        if (daysSinceCompleted >= 1 && daysSinceCompleted <= 2) {
-          const daysLeft = Math.max(0, 2 - daysSinceCompleted);
+        // Check if habit was completed today
+        const completedToday = isHabitCompletedToday(habit);
+        
+        // Warn if they haven't completed today AND it's been 1+ days since last completion
+        // This gives them until end of today to complete it
+        if (!completedToday && daysSinceCompleted >= 1) {
+          // Calculate how many days left before streak is lost
+          // Streak is lost if they miss tomorrow (daysSinceCompleted >= 2)
+          const daysLeft = Math.max(0, 1 - (daysSinceCompleted - 1));
           
           // Only show warning once per day to avoid spam
-          const lastWarningKey = `streak-warning-${habit.id}-${format(today, 'yyyy-MM-dd')}`;
+          const lastWarningKey = `streak-warning-${habit.id}-${today}`;
           const lastWarning = localStorage.getItem(lastWarningKey);
           
           if (!lastWarning) {

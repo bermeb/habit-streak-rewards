@@ -1,5 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { AppProvider } from './context/AppContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { Dashboard } from './components/Dashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import { InstallPrompt } from './components/InstallPrompt';
@@ -188,6 +189,7 @@ function App() {
   return (
     <ErrorBoundary>
       <AppProvider>
+        <NotificationProvider>
         <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
         {/* Sidebar - hidden in quick mode */}
         {currentView !== 'quick' && (
@@ -300,6 +302,7 @@ function App() {
         {/* PWA Install Prompt */}
         <InstallPrompt />
         </div>
+        </NotificationProvider>
       </AppProvider>
     </ErrorBoundary>
   );

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Play, RotateCcw, Gift, Star } from 'lucide-react';
-import { Reward } from '../types';
+import { Reward } from '@/types';
 import { useWheel } from '../hooks/useWheel';
 import { useRewards } from '../hooks/useRewards';
 import { getRewardProbabilities, calculateEffectiveStreak, formatPercentage } from '../utils/habitUtils';
@@ -15,7 +15,7 @@ interface RewardWheelProps {
 
 export const RewardWheel: React.FC<RewardWheelProps> = ({
   habitStreak,
-  habitName,
+  habitName: _habitName,
   onRewardWon,
   disabled = false
 }) => {
@@ -78,7 +78,8 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
     let currentAngle = currentRotation;
     const anglePerSegment = (2 * Math.PI) / segments.length;
 
-    segments.forEach((segment, index) => {
+    segments.forEach((segment, _index) => {
+      // Use equal segments for visual representation
       const startAngle = currentAngle;
       const endAngle = currentAngle + anglePerSegment;
 
@@ -213,26 +214,25 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
       } else {
         setIsSpinning(false);
         
-        // Calculate which segment is actually at the pointer after the wheel stops
-        const finalWheelRotation = newRotation;
-        const anglePerSegment = (2 * Math.PI) / segments.length;
+        // Use milestone percentages to determine winner (not visual wheel position)
+        const probabilities = getRewardProbabilities(effectiveStreak, state.milestones);
+        const randomValue = Math.random() * 100;
         
-        // The pointer is at the top. Segments start at angle 0 and go clockwise.
-        // We need to find which segment is at the top after rotation.
-        // Normalize the rotation to [0, 2π]
-        const normalizedRotation = ((finalWheelRotation % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+        let selectedCategory: Reward['category'];
+        if (randomValue < probabilities.small) {
+          selectedCategory = 'small';
+        } else if (randomValue < probabilities.small + probabilities.medium) {
+          selectedCategory = 'medium';
+        } else {
+          selectedCategory = 'large';
+        }
         
-        // The first segment (index 0) starts at currentRotation = 0
-        // After the wheel rotates by finalWheelRotation, segment 0 is at angle finalWheelRotation
-        // The pointer is at the top (angle 3π/2 or -π/2)
-        // We want to find which segment is closest to 3π/2
-        const targetAngle = (3 * Math.PI / 2); // Top of circle
+        // Get all rewards in the selected category
+        const categorySegments = segments.filter(s => s.reward.category === selectedCategory);
         
-        // Find which segment is at the target angle
-        let winningIndex = Math.floor((targetAngle - normalizedRotation + (2 * Math.PI)) / anglePerSegment) % segments.length;
-        if (winningIndex < 0) winningIndex += segments.length;
-        
-        const actualWinningSegment = segments[winningIndex];
+        // Randomly select one reward from that category
+        const randomRewardIndex = Math.floor(Math.random() * categorySegments.length);
+        const actualWinningSegment = categorySegments[randomRewardIndex] || segments[0];
         
         setWonReward(actualWinningSegment.reward);
         setShowResult(true);

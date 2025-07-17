@@ -46,10 +46,104 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Handle background sync for offline habit completion
+// Handle background sync for offline habit completion and notifications
 self.addEventListener('sync', (event) => {
   if (event.tag === 'habit-sync') {
     event.waitUntil(syncHabits());
+  } else if (event.tag === 'streak-danger-check') {
+    event.waitUntil(checkStreakDangers());
+  }
+});
+
+// Check for streak dangers in background
+function checkStreakDangers() {
+  return new Promise((resolve) => {
+    try {
+      const habits = JSON.parse(localStorage.getItem('habits') || '[]');
+      const notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+      
+      if (!notificationsEnabled || !habits.length) {
+        resolve();
+        return;
+      }
+      
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      
+      habits.forEach(habit => {
+        if (habit.streak > 0 && habit.lastCompleted) {
+          const lastCompletedDate = new Date(habit.lastCompleted);
+          const daysSinceCompleted = Math.floor((now.getTime() - lastCompletedDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Check if habit was completed today
+          const completedToday = habit.completedDates && habit.completedDates.includes(today);
+          
+          if (!completedToday && daysSinceCompleted >= 1) {
+            const daysLeft = Math.max(0, 1 - (daysSinceCompleted - 1));
+            
+            // Only show warning once per day to avoid spam
+            const lastWarningKey = `streak-warning-${habit.id}-${today}`;
+            const lastWarning = localStorage.getItem(lastWarningKey);
+            
+            if (!lastWarning) {
+              showNotification(habit.name, daysLeft);
+              localStorage.setItem(lastWarningKey, 'shown');
+            }
+          }
+        }
+      });
+      
+      resolve();
+    } catch (error) {
+      console.error('Error checking streak dangers in background:', error);
+      resolve();
+    }
+  });
+}
+
+// Show notification
+function showNotification(habitName, daysLeft) {
+  const title = '⚠️ Streak in Gefahr!';
+  const message = daysLeft > 0 
+    ? `${habitName}: Noch ${daysLeft} Tag${daysLeft > 1 ? 'e' : ''} um deinen Streak zu retten!`
+    : `${habitName}: Dein Streak ist heute in Gefahr!`;
+    
+  self.registration.showNotification(title, {
+    body: message,
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    tag: `streak-danger-${habitName}`,
+    requireInteraction: true,
+    actions: [
+      {
+        action: 'complete',
+        title: 'Jetzt erledigen'
+      },
+      {
+        action: 'dismiss',
+        title: 'Später'
+      }
+    ]
+  });
+}
+
+// Handle notification clicks
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  if (event.action === 'complete') {
+    // Open the app to the quick check page
+    event.waitUntil(
+      clients.openWindow('/?quick=true')
+    );
+  } else if (event.action === 'dismiss') {
+    // Just close the notification
+    return;
+  } else {
+    // Open the main app
+    event.waitUntil(
+      clients.openWindow('/')
+    );
   }
 });
 

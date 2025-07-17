@@ -1,6 +1,6 @@
 import React from 'react';
 import { Target, Trophy, Star, Crown, Zap } from 'lucide-react';
-import { Habit, Milestone } from '../types';
+import { Habit, Milestone } from '@/types';
 import { useStreaks } from '../hooks/useStreaks';
 import { getNextMilestone, getAchievedMilestones, calculateMilestoneProgress } from '../utils/habitUtils';
 
@@ -16,7 +16,7 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
   className = ''
 }) => {
   const { getStreakStats } = useStreaks();
-  const _stats = getStreakStats(habit.id);
+  const stats = getStreakStats(habit.id);
   
   const nextMilestone = getNextMilestone(habit.streak, milestones);
   const achievedMilestones = getAchievedMilestones(habit.streak, milestones);
@@ -79,7 +79,7 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
                 Nächstes Ziel: {nextMilestone.days} Tage
               </span>
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                {nextMilestone.days - habit.streak > 0 ? `-${nextMilestone.days - habit.streak}` : '✓'}
+                {nextMilestone.days - habit.streak > 0 ? `${habit.streak}/${nextMilestone.days}` : '✓'}
               </span>
             </div>
             
@@ -160,6 +160,44 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
         })}
       </div>
 
+      {/* Wheel Spin Status */}
+      {stats && (
+        <div className="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🎰</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Belohnungs-Rad
+              </span>
+            </div>
+            <div className="text-xs">
+              {stats.canSpinWheel ? (
+                <span className="text-green-600 dark:text-green-400 font-medium">✓ Verfügbar</span>
+              ) : (
+                <span className="text-gray-500 dark:text-gray-400">Noch nicht verfügbar</span>
+              )}
+            </div>
+          </div>
+          
+          {stats.rewardProbabilities && (
+            <div className="mt-2 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>{stats.rewardProbabilities.small}%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                <span>{stats.rewardProbabilities.medium}%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <span>{stats.rewardProbabilities.large}%</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Compact Motivation Message */}
       <div className="p-3 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-lg">
         <div className="text-center text-sm">
@@ -175,7 +213,7 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
               <br />
               <span className="font-medium">
                 {nextMilestone.days - habit.streak > 0 
-                  ? `Noch ${nextMilestone.days - habit.streak} Tage bis zum nächsten Ziel!`
+                  ? `${habit.streak}/${nextMilestone.days} Tage - Noch ${nextMilestone.days - habit.streak} bis zum nächsten Ziel!`
                   : 'Nächstes Ziel erreicht!'
                 }
               </span>

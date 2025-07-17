@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Plus, Trophy, CheckCircle, Circle, Timer, Hash } from 'lucide-react';
 import { useHabits } from '../hooks/useHabits';
 import { useStreaks } from '../hooks/useStreaks';
@@ -8,11 +8,11 @@ import { HabitForm } from './HabitForm';
 import { RewardWheel } from './RewardWheel';
 import { MilestoneProgress } from './MilestoneProgress';
 import { format } from 'date-fns';
-import { Habit } from '../types';
-import { isHabitCompletedToday } from '../utils/habitUtils';
+import { Habit } from '@/types';
+import { isHabitCompletedToday, calculateEffectiveStreak } from '../utils/habitUtils';
 
 export const Dashboard: React.FC = () => {
-  const { habits, getTodayCompletions, getStreakLeaders, completeHabit, checkStreakDangers } = useHabits();
+  const { habits, getTodayCompletions, getStreakLeaders, completeHabit } = useHabits();
   const { getOverallStats } = useStreaks();
   const { getRewardStats } = useRewards();
   const { state } = useAppContext();
@@ -25,18 +25,17 @@ export const Dashboard: React.FC = () => {
   const streakLeaders = getStreakLeaders(3);
   const overallStats = getOverallStats();
   const rewardStats = getRewardStats();
+  
+  // Calculate effective streak based on user settings
+  const effectiveStreak = calculateEffectiveStreak(
+    state.habits, 
+    state.settings.streakCalculationMode, 
+    state.milestones
+  );
 
   const today = format(new Date(), 'EEEE, d. MMMM yyyy');
 
-  // Check for streak dangers when dashboard loads
-  useEffect(() => {
-    checkStreakDangers();
-    
-    // Set up periodic checking (every 30 minutes)
-    const interval = setInterval(checkStreakDangers, 30 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, [checkStreakDangers]);
+  // Note: Streak danger checking is now handled by NotificationProvider
 
   const getMotivationalGreeting = () => {
     const hour = new Date().getHours();
@@ -300,10 +299,12 @@ export const Dashboard: React.FC = () => {
           )}
 
           {/* Reward Wheel - Mobile Optimized */}
-          {streakLeaders.length > 0 && (
+          {state.habits.length > 0 && (
             <RewardWheel
-              habitStreak={streakLeaders[0].streak}
-              habitName={streakLeaders[0].name}
+              habitStreak={effectiveStreak}
+              habitName={state.settings.streakCalculationMode === 'highest' 
+                ? `Höchster Streak (${streakLeaders[0]?.name || 'Keine Habits'})`
+                : 'Alle Habits kombiniert'}
               onRewardWon={(reward) => {
                 console.log('Reward won:', reward);
               }}
@@ -311,9 +312,15 @@ export const Dashboard: React.FC = () => {
           )}
 
           {/* Milestone Progress - Mobile Optimized */}
-          {streakLeaders.length > 0 && (
+          {state.habits.length > 0 && (
             <MilestoneProgress
-              habit={streakLeaders[0]}
+              habit={{
+                ...streakLeaders[0],
+                streak: effectiveStreak,
+                name: state.settings.streakCalculationMode === 'highest' 
+                  ? `Höchster Streak (${streakLeaders[0]?.name || 'Keine Habits'})`
+                  : 'Alle Habits kombiniert'
+              }}
               milestones={state.milestones}
             />
           )}

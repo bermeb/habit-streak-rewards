@@ -1,6 +1,6 @@
 import { useAppContext } from '../context/AppContext';
 import { useRewards } from './useRewards';
-import { Reward, WheelSegment } from '../types';
+import { Reward, WheelSegment } from '@/types';
 import { getRewardProbabilities } from '../utils/habitUtils';
 
 export const useWheel = () => {
@@ -20,30 +20,31 @@ export const useWheel = () => {
       large: '#EF4444'
     };
 
-    const totalProbability = probabilities.small + probabilities.medium + probabilities.large;
-    let _currentAngle = 0;
-
-    // Create segments based on probabilities
+    // Create segments with equal visual sizes but store actual probabilities
     Object.entries(probabilities).forEach(([category, probability]) => {
       const categoryRewards = getRewardsByCategory(category as Reward['category']);
-      const segmentAngle = (probability / totalProbability) * 360;
       
       if (categoryRewards.length > 0) {
-        const rewardsToShow = Math.max(1, Math.ceil(categoryRewards.length * (probability / 100)));
-        const anglePerReward = segmentAngle / rewardsToShow;
-        
-        categoryRewards.slice(0, rewardsToShow).forEach((reward, index) => {
+        categoryRewards.forEach((reward, index) => {
           segments.push({
             id: `${category}-${index}`,
             reward,
-            angle: anglePerReward,
+            angle: 360 / categoryRewards.length, // Equal visual size for now, will be recalculated
             color: colors[category as keyof typeof colors],
-            probability: probability / rewardsToShow
+            probability: probability / categoryRewards.length
           });
-          _currentAngle += anglePerReward;
         });
       }
     });
+
+    // Calculate equal angles for all segments (visual only)
+    const totalSegments = segments.length;
+    if (totalSegments > 0) {
+      const equalAngle = 360 / totalSegments;
+      segments.forEach(segment => {
+        segment.angle = equalAngle;
+      });
+    }
 
     return segments;
   };
