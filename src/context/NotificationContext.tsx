@@ -67,7 +67,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const scheduleBackgroundSync = useCallback(() => {
     if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
       navigator.serviceWorker.ready.then(registration => {
-        return (registration as any).sync.register('streak-danger-check');
+        return (registration as ServiceWorkerRegistration & { sync: { register: (tag: string) => Promise<void> } }).sync.register('streak-danger-check');
       }).catch(error => {
         console.error('Background sync registration failed:', error);
       });

@@ -1,7 +1,8 @@
-import React, { createContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { useReducer, useEffect, ReactNode } from 'react';
 import { AppState, HabitAction, HabitCompletion } from '@/types';
 import { format } from 'date-fns';
 import { calculateStreaks, shouldResetStreak, getDefaultMilestones, getDefaultRewards } from '../utils/habitUtils';
+import { AppContext } from './useAppContext';
 
 const initialState: AppState = {
   habits: [],
@@ -235,13 +236,6 @@ function appReducer(state: AppState, action: HabitAction): AppState {
       return state;
   }
 }
-
-interface AppContextType {
-  state: AppState;
-  dispatch: React.Dispatch<HabitAction>;
-}
-
-export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 interface AppProviderProps {
   children: ReactNode;
