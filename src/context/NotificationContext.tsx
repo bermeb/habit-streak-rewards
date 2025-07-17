@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, ReactNode } from 'react';
-import { useAppContext } from '../hooks/useAppContext';
+import { useAppContext } from './useAppContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAppPreferences } from '../hooks/useLocalStorage';
 import { format, differenceInDays, parseISO } from 'date-fns';

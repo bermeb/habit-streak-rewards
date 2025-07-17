@@ -13,9 +13,9 @@ export const QuickCheck: React.FC<QuickCheckProps> = ({ onNavigateHome }) => {
   const [completedToday, setCompletedToday] = useState<string[]>([]);
   const [justCompleted, setJustCompleted] = useState<string[]>([]);
 
-  const _today = format(new Date(), 'yyyy-MM-dd');
+  const today = format(new Date(), 'yyyy-MM-dd');
   const todayCompletions = getTodayCompletions();
-  const pendingHabits = habits.filter(habit => !isHabitCompletedToday(habit));
+  const pendingHabits = habits.filter(habit => !isHabitCompletedToday(habit, today));
 
   useEffect(() => {
     setCompletedToday(todayCompletions.map(h => h.id));

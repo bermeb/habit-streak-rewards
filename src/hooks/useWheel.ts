@@ -1,4 +1,4 @@
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { useRewards } from './useRewards';
 import { Reward, WheelSegment } from '@/types';
 import { getRewardProbabilities } from '../utils/habitUtils';

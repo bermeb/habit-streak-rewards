@@ -3,7 +3,7 @@ import { Plus, Trophy, CheckCircle, Circle, Timer, Hash } from 'lucide-react';
 import { useHabits } from '../hooks/useHabits';
 import { useStreaks } from '../hooks/useStreaks';
 import { useRewards } from '../hooks/useRewards';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { HabitForm } from './HabitForm';
 import { RewardWheel } from './RewardWheel';
 import { MilestoneProgress } from './MilestoneProgress';

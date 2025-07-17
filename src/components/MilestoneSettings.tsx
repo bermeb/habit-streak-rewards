@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit3, Trash2, Save, X, Target } from 'lucide-react';
 import { Milestone } from '../types';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { formatPercentage } from '../utils/habitUtils';
 
 interface MilestoneSettingsProps {

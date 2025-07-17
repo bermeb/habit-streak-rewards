@@ -1,4 +1,4 @@
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { Reward, RewardCategory } from '../types';
 import { generateRewardId } from '../utils/habitUtils';
 

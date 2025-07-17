@@ -13,7 +13,7 @@ import {
 import { useHabits } from '../hooks/useHabits';
 import { useStreaks } from '../hooks/useStreaks';
 import { useRewards } from '../hooks/useRewards';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { HabitCalendar } from './HabitCalendar';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays } from 'date-fns';

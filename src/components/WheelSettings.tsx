@@ -1,6 +1,6 @@
 import React from 'react';
 import { Settings, Target, TrendingUp } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 
 export const WheelSettings: React.FC = () => {
   const { state, dispatch } = useAppContext();

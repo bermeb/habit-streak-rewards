@@ -4,7 +4,7 @@ import { Reward } from '@/types';
 import { useWheel } from '../hooks/useWheel';
 import { useRewards } from '../hooks/useRewards';
 import { getRewardProbabilities, calculateEffectiveStreak, formatPercentage } from '../utils/habitUtils';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 
 interface RewardWheelProps {
   habitStreak: number;

@@ -35,9 +35,9 @@ export const shouldResetStreak = (lastCompleted: string, today: string): boolean
   return daysDiff > 1;
 };
 
-export const isHabitCompletedToday = (habit: Habit): boolean => {
-  const today = format(new Date(), 'yyyy-MM-dd');
-  return habit.completedDates.includes(today);
+export const isHabitCompletedToday = (habit: Habit, today?: string): boolean => {
+  const todayDate = today || format(new Date(), 'yyyy-MM-dd');
+  return habit.completedDates.includes(todayDate);
 };
 
 export const getHabitCompletionRate = (habit: Habit, days: number = 30): number => {

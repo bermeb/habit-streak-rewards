@@ -11,7 +11,7 @@ import {
   Star
 } from 'lucide-react';
 import { useHabits } from '../hooks/useHabits';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { 
   format, 
   subDays, 
@@ -22,19 +22,6 @@ import {
   eachDayOfInterval
 } from 'date-fns';
 
-interface _HabitAnalytics {
-  habitId: string;
-  habitName: string;
-  icon: string;
-  currentStreak: number;
-  longestStreak: number;
-  completionRate7Days: number;
-  completionRate30Days: number;
-  totalCompletions: number;
-  trend: 'up' | 'down' | 'stable';
-  lastCompleted: string | null;
-  averageGap: number;
-}
 
 interface WeeklyData {
   week: string;
