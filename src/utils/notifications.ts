@@ -82,7 +82,10 @@ export class NotificationManager {
     try {
       if (this.registration) {
         // Use service worker for persistent notifications
-        const swNotificationOptions: NotificationOptions & { actions?: Array<{ action: string; title: string; icon?: string }> } = {
+        const swNotificationOptions: NotificationOptions & { 
+          actions?: Array<{ action: string; title: string; icon?: string }>;
+          vibrate?: number[];
+        } = {
           body: options.body,
           icon: options.icon || '/icon-192x192.png',
           badge: options.badge || '/icon-192x192.png',
