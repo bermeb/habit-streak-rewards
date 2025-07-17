@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, BookOpen, Dumbbell, Apple, Target } from 'lucide-react';
-import { Habit, HabitTemplate } from '../types';
+import { X } from 'lucide-react';
+import { Habit, HabitTemplate } from '@/types';
 import { useHabits } from '../hooks/useHabits';
 
 interface HabitFormProps {
@@ -61,19 +61,6 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onClose, onSave }) 
   const handleTemplateSelect = (template: HabitTemplate) => {
     setSelectedTemplate(template);
     setShowTemplates(false);
-  };
-
-  const _getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'learning':
-        return <BookOpen size={20} />;
-      case 'gym':
-        return <Dumbbell size={20} />;
-      case 'calories':
-        return <Apple size={20} />;
-      default:
-        return <Target size={20} />;
-    }
   };
 
   const predefinedColors = [

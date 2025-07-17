@@ -1,4 +1,4 @@
-import { AppState } from '../types';
+import { AppState } from '@/types';
 
 export interface ExportData {
   version: string;
@@ -35,38 +35,42 @@ export const validateImportData = (data: unknown): { isValid: boolean; error?: s
     return { isValid: false, error: 'Invalid file format' };
   }
 
-  if (!data.version) {
+  const dataObj = data as Record<string, unknown>;
+
+  if (!dataObj.version) {
     return { isValid: false, error: 'Missing version information' };
   }
 
-  if (!data.appData) {
+  if (!dataObj.appData) {
     return { isValid: false, error: 'Missing app data' };
   }
 
+  const appData = dataObj.appData as Record<string, unknown>;
+
   const requiredFields = ['habits', 'rewards', 'milestones', 'completions', 'settings', 'statistics'];
   for (const field of requiredFields) {
-    if (!(field in data.appData)) {
+    if (!(field in appData)) {
       return { isValid: false, error: `Missing required field: ${field}` };
     }
   }
 
   // Validate habits structure
-  if (!Array.isArray(data.appData.habits)) {
+  if (!Array.isArray(appData.habits)) {
     return { isValid: false, error: 'Invalid habits data structure' };
   }
 
   // Validate rewards structure
-  if (!Array.isArray(data.appData.rewards)) {
+  if (!Array.isArray(appData.rewards)) {
     return { isValid: false, error: 'Invalid rewards data structure' };
   }
 
   // Validate milestones structure
-  if (!Array.isArray(data.appData.milestones)) {
+  if (!Array.isArray(appData.milestones)) {
     return { isValid: false, error: 'Invalid milestones data structure' };
   }
 
   // Validate completions structure
-  if (!Array.isArray(data.appData.completions)) {
+  if (!Array.isArray(appData.completions)) {
     return { isValid: false, error: 'Invalid completions data structure' };
   }
 

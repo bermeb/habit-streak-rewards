@@ -11,29 +11,19 @@ import {
   Eye
 } from 'lucide-react';
 import { useHabits } from '../hooks/useHabits';
-import { useStreaks } from '../hooks/useStreaks';
-import { useRewards } from '../hooks/useRewards';
-import { useAppContext } from '../context/useAppContext';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { HabitCalendar } from './HabitCalendar';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, addDays } from 'date-fns';
 
 export const Statistics: React.FC = () => {
   const { habits } = useHabits();
-  const { getOverallStats } = useStreaks();
-  const { getRewardStats } = useRewards();
-  const { state: _state } = useAppContext();
   
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('week');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<'overview' | 'analytics' | 'calendar'>('overview');
   const [selectedHabitForCalendar, setSelectedHabitForCalendar] = useState<string | undefined>(undefined);
 
-  const _overallStats = getOverallStats();
-  const _rewardStats = getRewardStats();
-
   const getPeriodStats = () => {
-    const _now = new Date();
     let startDate: Date;
     let endDate: Date;
 

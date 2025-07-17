@@ -4,7 +4,7 @@ export interface NotificationPermissionState {
   canRequest: boolean;
 }
 
-export interface NotificationOptions {
+export interface CustomNotificationOptions {
   title: string;
   body: string;
   icon?: string;
@@ -68,11 +68,10 @@ export class NotificationManager {
       return 'denied';
     }
 
-    const permission = await Notification.requestPermission();
-    return permission;
+    return await Notification.requestPermission();
   }
 
-  async showNotification(options: NotificationOptions): Promise<boolean> {
+  async showNotification(options: CustomNotificationOptions): Promise<boolean> {
     const permissionState = this.getPermissionState();
     
     if (!permissionState.supported || permissionState.permission !== 'granted') {
@@ -83,17 +82,22 @@ export class NotificationManager {
     try {
       if (this.registration) {
         // Use service worker for persistent notifications
-        await this.registration.showNotification(options.title, {
+        const swNotificationOptions: NotificationOptions & { actions?: Array<{ action: string; title: string; icon?: string }> } = {
           body: options.body,
           icon: options.icon || '/icon-192x192.png',
           badge: options.badge || '/icon-192x192.png',
           tag: options.tag,
           data: options.data,
-          actions: options.actions,
           requireInteraction: options.requireInteraction,
           silent: options.silent,
           vibrate: [200, 100, 200]
-        });
+        };
+        
+        if (options.actions) {
+          swNotificationOptions.actions = options.actions;
+        }
+        
+        await this.registration.showNotification(options.title, swNotificationOptions);
       } else {
         // Fallback to regular notification
         new Notification(options.title, {

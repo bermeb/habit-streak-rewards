@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Edit3, Trash2, Save, X, Target } from 'lucide-react';
-import { Milestone } from '../types';
+import { Milestone } from '@/types';
 import { useAppContext } from '../context/useAppContext';
 import { formatPercentage } from '../utils/habitUtils';
 
@@ -101,10 +101,6 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
     });
   };
 
-  const _validateProbabilities = (small: number, medium: number, large: number) => {
-    const total = small + medium + large;
-    return total === 100;
-  };
 
   const renderMilestoneForm = (milestone: Milestone, isEditing: boolean, index?: number) => {
     const totalProbability = milestone.smallChance + milestone.mediumChance + milestone.largeChance;
