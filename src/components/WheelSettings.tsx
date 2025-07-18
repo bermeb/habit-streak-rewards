@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Target, TrendingUp } from 'lucide-react';
+import { Settings, TrendingUp } from 'lucide-react';
 import { useAppContext } from '../context/useAppContext';
 
 export const WheelSettings: React.FC = () => {
@@ -12,12 +12,6 @@ export const WheelSettings: React.FC = () => {
     });
   };
 
-  const handleShowNextMilestoneChange = (show: boolean) => {
-    dispatch({
-      type: 'UPDATE_SETTINGS',
-      payload: { showNextMilestoneProbabilities: show }
-    });
-  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
@@ -78,39 +72,6 @@ export const WheelSettings: React.FC = () => {
           </div>
         </div>
 
-        {/* Next Milestone Probabilities */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-            <Target size={16} />
-            Wahrscheinlichkeits-Anzeige
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Zeige die Wahrscheinlichkeiten für den nächsten Meilenstein statt dem aktuellen
-          </p>
-          
-          <label className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                Nächsten Meilenstein anzeigen
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Zeigt die Belohnungswahrscheinlichkeiten für den nächsten Meilenstein als Motivation
-              </div>
-            </div>
-            <button
-              onClick={() => handleShowNextMilestoneChange(!state.settings.showNextMilestoneProbabilities)}
-              className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                state.settings.showNextMilestoneProbabilities ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${
-                  state.settings.showNextMilestoneProbabilities ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </label>
-        </div>
 
         {/* Current Settings Preview */}
         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
@@ -127,10 +88,7 @@ export const WheelSettings: React.FC = () => {
             </div>
             <div>
               <span className="font-medium">Wahrscheinlichkeiten:</span>{' '}
-              {state.settings.showNextMilestoneProbabilities 
-                ? 'Nächster Meilenstein' 
-                : 'Aktueller Meilenstein'
-              }
+              Nächster Meilenstein (automatisch)
             </div>
           </div>
         </div>

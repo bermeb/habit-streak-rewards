@@ -13,9 +13,9 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newMilestone, setNewMilestone] = useState<Milestone>({
     days: 0,
-    smallChance: 60,
+    smallChance: 50,
     mediumChance: 30,
-    largeChance: 10,
+    largeChance: 20,
     label: ''
   });
   const [showAddForm, setShowAddForm] = useState(false);
@@ -69,9 +69,9 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
     dispatch({ type: 'ADD_MILESTONE', payload: newMilestone });
     setNewMilestone({
       days: 0,
-      smallChance: 60,
+      smallChance: 50,
       mediumChance: 30,
-      largeChance: 10,
+      largeChance: 20,
       label: ''
     });
     setShowAddForm(false);
@@ -88,9 +88,9 @@ export const MilestoneSettings: React.FC<MilestoneSettingsProps> = ({ className 
     setShowAddForm(false);
     setNewMilestone({
       days: 0,
-      smallChance: 60,
+      smallChance: 50,
       mediumChance: 30,
-      largeChance: 10,
+      largeChance: 20,
       label: ''
     });
     setInputValues({

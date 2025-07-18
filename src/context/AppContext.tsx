@@ -1,13 +1,13 @@
 import React, { useReducer, useEffect, ReactNode } from 'react';
 import { AppState, HabitAction, HabitCompletion } from '@/types';
 import { format } from 'date-fns';
-import { calculateStreaks, shouldResetStreak, getDefaultMilestones, getDefaultRewards } from '../utils/habitUtils';
+import { calculateStreaks, shouldResetStreak, getDefaultRewards } from '../utils/habitUtils';
 import { AppContext } from './useAppContext';
 
 const initialState: AppState = {
   habits: [],
   rewards: getDefaultRewards(),
-  milestones: getDefaultMilestones(),
+  milestones: [],
   completions: [],
   settings: {
     theme: 'system',
@@ -15,8 +15,7 @@ const initialState: AppState = {
     soundEnabled: true,
     language: 'de',
     weekStartsOn: 1,
-    streakCalculationMode: 'highest',
-    showNextMilestoneProbabilities: false
+    streakCalculationMode: 'highest'
   },
   statistics: {
     totalHabitsCompleted: 0,

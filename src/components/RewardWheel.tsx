@@ -299,7 +299,15 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
     if (effectiveStreak === 0) return 'Starte deine Gewohnheit um Belohnungen freizuschalten!';
     if (effectiveStreak < 7) return 'Weiter so! Erreiche 7 Tage für deine erste Belohnung!';
     
-    if (state.settings.showNextMilestoneProbabilities) {
+    if (canSpinWheel) {
+      const achievedMilestone = state.milestones
+        .filter(m => m.days <= effectiveStreak)
+        .sort((a, b) => b.days - a.days)[0];
+      
+      if (achievedMilestone) {
+        return `Zeigt Belohnungen für ${achievedMilestone.label} (${achievedMilestone.days} Tage erreicht)`;
+      }
+    } else {
       const nextMilestone = state.milestones
         .filter(m => m.days > effectiveStreak)
         .sort((a, b) => a.days - b.days)[0];
@@ -403,7 +411,7 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
           const probabilities = getRewardProbabilities(
             effectiveStreak, 
             state.milestones, 
-            state.settings.showNextMilestoneProbabilities
+            !canSpinWheel
           );
           return (
             <div className="grid grid-cols-3 gap-2 text-xs">

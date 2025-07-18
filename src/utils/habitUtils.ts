@@ -1,5 +1,5 @@
-import { format, parseISO, differenceInDays, isAfter, isBefore, addDays, subDays } from 'date-fns';
-import { Habit, Milestone, Reward, HabitTemplate } from '../types';
+import {addDays, differenceInDays, format, isAfter, isBefore, parseISO, subDays} from 'date-fns';
+import {Habit, HabitTemplate, Milestone, Reward} from '@/types';
 
 export const calculateStreaks = (completedDates: string[]): number => {
   if (completedDates.length === 0) return 0;
@@ -52,13 +52,6 @@ export const getHabitCompletionRate = (habit: Habit, days: number = 30): number 
   return (completionsInPeriod / days) * 100;
 };
 
-export const getDefaultMilestones = (): Milestone[] => [
-  { days: 7, smallChance: 60, mediumChance: 30, largeChance: 10, label: '1 Woche' },
-  { days: 14, smallChance: 50, mediumChance: 35, largeChance: 15, label: '2 Wochen' },
-  { days: 30, smallChance: 40, mediumChance: 40, largeChance: 20, label: '1 Monat' },
-  { days: 60, smallChance: 30, mediumChance: 45, largeChance: 25, label: '2 Monate' },
-  { days: 100, smallChance: 20, mediumChance: 50, largeChance: 30, label: '100 Tage' }
-];
 
 export const getDefaultRewards = (): Reward[] => [
   // Small rewards
@@ -158,9 +151,7 @@ export const calculateMilestoneProgress = (currentStreak: number, milestones: Mi
   
   const start = previousMilestone?.days || 0;
   const end = nextMilestone.days;
-  const current = currentStreak;
-  
-  return Math.min(((current - start) / (end - start)) * 100, 100);
+  return Math.min(((currentStreak - start) / (end - start)) * 100, 100);
 };
 
 export const canSpinWheel = (habit: Habit, milestones: Milestone[]): boolean => {
@@ -190,8 +181,17 @@ export const getRewardProbabilities = (streak: number, milestones: Milestone[], 
   const currentMilestone = achievedMilestones[0];
   
   if (!currentMilestone) {
-    // Default probabilities when no milestones are achieved
-    return { small: 70, medium: 25, large: 5 };
+    // Use first milestone percentages when no milestones are achieved
+    const firstMilestone = milestones.sort((a, b) => a.days - b.days)[0];
+    if (firstMilestone) {
+      return {
+        small: firstMilestone.smallChance,
+        medium: firstMilestone.mediumChance,
+        large: firstMilestone.largeChance
+      };
+    }
+    // Fallback if no milestones configured at all
+    return { small: 50, medium: 30, large: 20 };
   }
   
   return {
