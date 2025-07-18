@@ -10,6 +10,7 @@ import { MilestoneProgress } from './MilestoneProgress';
 import { format } from 'date-fns';
 import { Habit } from '@/types';
 import { isHabitCompletedToday, calculateEffectiveStreak } from '../utils/habitUtils';
+import { Card } from './ui/Card';
 
 export const Dashboard: React.FC = () => {
   const { habits, getTodayCompletions, getStreakLeaders, completeHabit } = useHabits();
@@ -17,7 +18,6 @@ export const Dashboard: React.FC = () => {
   const { getRewardStats } = useRewards();
   const { state } = useAppContext();
   const [showHabitForm, setShowHabitForm] = useState(false);
-  const [_selectedHabitForWheel, _setSelectedHabitForWheel] = useState<string | null>(null);
   const [habitInputValues, setHabitInputValues] = useState<Record<string, number>>({});
   const [habitInputStrings, setHabitInputStrings] = useState<Record<string, string>>({});
 
@@ -113,7 +113,7 @@ export const Dashboard: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Mobile Progress Bar */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700 mb-6">
+        <Card className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Heutiger Fortschritt
@@ -140,11 +140,11 @@ export const Dashboard: React.FC = () => {
               der Habits erledigt
             </p>
           </div>
-        </div>
+        </Card>
 
         {/* Today's Habits - Mobile Optimized */}
         <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
+          <Card>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Heutige Habits
@@ -250,11 +250,11 @@ export const Dashboard: React.FC = () => {
                 </button>
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Streak Leaders - Mobile Optimized */}
           {streakLeaders.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
+            <Card>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   🏆 Top Streaks
@@ -295,7 +295,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Reward Wheel - Mobile Optimized */}

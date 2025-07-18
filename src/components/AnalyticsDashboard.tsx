@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -11,7 +11,6 @@ import {
   Star
 } from 'lucide-react';
 import { useHabits } from '../hooks/useHabits';
-import { useAppContext } from '../context/useAppContext';
 import { 
   format, 
   subDays, 
@@ -32,8 +31,6 @@ interface WeeklyData {
 
 export const AnalyticsDashboard: React.FC = () => {
   const { habits } = useHabits();
-  const { state: _state } = useAppContext();
-  const [_selectedPeriod, _setSelectedPeriod] = useState<7 | 30 | 90>(30);
 
   const habitAnalytics = useMemo(() => {
     const today = new Date();
@@ -261,7 +258,7 @@ export const AnalyticsDashboard: React.FC = () => {
         </h3>
         
         <div className="space-y-3">
-          {weeklyData.map((week, _index) => (
+          {weeklyData.map((week) => (
             <div key={week.week} className="flex items-center gap-4">
               <div className="w-16 text-sm text-gray-600 dark:text-gray-400">
                 {week.week}

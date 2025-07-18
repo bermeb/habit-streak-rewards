@@ -1,12 +1,68 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import compression from 'vite-plugin-compression'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
   base: '/',
+  build: {
+    // Enable text compression and optimizations
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor dependencies
+          vendor: ['react', 'react-dom'],
+          utils: ['date-fns', 'lucide-react'],
+          // Split large components
+          components: [
+            './src/components/HabitsList.tsx',
+            './src/components/RewardsManagement.tsx',
+            './src/components/Statistics.tsx',
+            './src/components/DataManagement.tsx',
+            './src/components/NotificationSettings.tsx',
+            './src/components/WheelSettings.tsx',
+            './src/components/MilestoneSettings.tsx',
+            './src/components/QuickCheck.tsx'
+          ]
+        }
+      }
+    },
+    // Reduce chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Performance budgets
+    assetsInlineLimit: 4096,
+    // Enable source maps for debugging while keeping build optimized
+    sourcemap: false,
+    // Optimize CSS
+    cssCodeSplit: true,
+    // Enable compression
+    reportCompressedSize: false
+  },
   plugins: [
     react(),
+    // Enable gzip compression
+    compression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 1024,
+      deleteOriginFile: false
+    }),
+    // Enable brotli compression
+    compression({
+      algorithm: 'brotliCompress',
+      ext: '.br',
+      threshold: 1024,
+      deleteOriginFile: false
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
@@ -158,8 +214,15 @@ export default defineConfig(() => ({
           }
         ]
       }
+    }),
+    // Bundle analyzer - only in analyze mode
+    process.env.ANALYZE && visualizer({
+      filename: 'dist/stats.html',
+      open: true,
+      gzipSize: true,
+      brotliSize: true,
     })
-  ],
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@': '/src'
