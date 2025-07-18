@@ -28,8 +28,7 @@ export default defineConfig(() => ({
         'apple-touch-icon-167x167.png',
         'apple-touch-icon-152x152.png',
         'safari-pinned-tab.svg',
-        'maskable-icon-512x512.png',
-        'maskable-icon-192x192.png'
+        'maskable-icon-1024x1024.png'
       ],
       manifest: {
         name: 'Habit Streak Rewards',
@@ -110,14 +109,8 @@ export default defineConfig(() => ({
             type: 'image/png'
           },
           {
-            src: 'maskable-icon-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'maskable'
-          },
-          {
-            src: 'maskable-icon-512x512.png',
-            sizes: '512x512',
+            src: 'maskable-icon-1024x1024.png',
+            sizes: '1024x1024',
             type: 'image/png',
             purpose: 'maskable'
           },
