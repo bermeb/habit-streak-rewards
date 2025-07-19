@@ -1,7 +1,7 @@
 import React, { useReducer, useEffect, ReactNode } from 'react';
 import { AppState, HabitAction, HabitCompletion } from '@/types';
 import { format } from 'date-fns';
-import { calculateStreaks, shouldResetStreak, getDefaultRewards } from '../utils/habitUtils';
+import { getDefaultRewards, calculateFrequencyStreak, shouldResetFrequencyStreak } from '../utils/habitUtils';
 import { AppContext } from './useAppContext';
 
 const initialState: AppState = {
@@ -85,13 +85,22 @@ function appReducer(state: AppState, action: HabitAction): AppState {
       const updatedCompletions = [...state.completions, completion];
       const updatedHabits = state.habits.map(h => {
         if (h.id === habitId) {
-          const newCompletedDates = [...h.completedDates, date];
-          const newStreak = calculateStreaks(newCompletedDates);
-          return {
+          const updatedHabit = {
             ...h,
-            streak: newStreak,
             lastCompleted: date,
-            completedDates: newCompletedDates
+            completedDates: [...h.completedDates, date],
+            completionValues: { ...h.completionValues, [date]: value },
+            // Set defaults for existing habits that don't have frequency properties
+            frequency: h.frequency || 'daily',
+            frequencyTarget: h.frequencyTarget || 1
+          };
+          
+          // Use new frequency-based streak calculation
+          const newStreak = calculateFrequencyStreak(updatedHabit);
+          
+          return {
+            ...updatedHabit,
+            streak: newStreak
           };
         }
         return h;
@@ -243,13 +252,30 @@ interface AppProviderProps {
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
+  // Migration function for existing habits
+  const migrateHabitsToFrequencyBased = (loadedState: AppState): AppState => {
+    const migratedHabits = loadedState.habits.map(habit => ({
+      ...habit,
+      frequency: habit.frequency || 'daily',
+      frequencyTarget: habit.frequencyTarget || 1,
+      completionValues: habit.completionValues || {}
+    }));
+
+    return {
+      ...loadedState,
+      habits: migratedHabits
+    };
+  };
+
   // Load state from localStorage on mount
   useEffect(() => {
     const savedState = localStorage.getItem('habit-tracker-state');
     if (savedState) {
       try {
         const parsedState = JSON.parse(savedState);
-        dispatch({ type: 'LOAD_STATE', payload: parsedState });
+        // Apply migration to ensure all habits have frequency properties
+        const migratedState = migrateHabitsToFrequencyBased(parsedState);
+        dispatch({ type: 'LOAD_STATE', payload: migratedState });
       } catch (error) {
         console.error('Error loading saved state:', error);
       }
@@ -267,7 +293,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const today = format(new Date(), 'yyyy-MM-dd');
       
       state.habits.forEach(habit => {
-        if (habit.lastCompleted && shouldResetStreak(habit.lastCompleted, today)) {
+        // Use new frequency-based streak reset logic
+        const shouldReset = shouldResetFrequencyStreak(habit, today);
+        if (shouldReset) {
           dispatch({ type: 'RESET_HABIT_STREAK', payload: habit.id });
         }
       });

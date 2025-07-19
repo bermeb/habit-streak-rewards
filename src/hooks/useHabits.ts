@@ -6,24 +6,29 @@ import {
   isHabitCompletedToday, 
   getHabitCompletionRate,
   getHabitTemplates,
-  calculateStreaks
+  calculateFrequencyStreak,
+  shouldResetFrequencyStreak
 } from '../utils/habitUtils';
 import { useNotifications } from './useNotifications';
 import { useAppPreferences } from './useLocalStorage';
 
 export const useHabits = () => {
   const { state, dispatch } = useAppContext();
-  const { showMilestoneNotification, showStreakDangerWarning } = useNotifications();
+  const { showMilestoneNotification } = useNotifications();
   const { notificationsEnabled } = useAppPreferences();
 
-  const addHabit = (habitData: Omit<Habit, 'id' | 'streak' | 'lastCompleted' | 'completedDates' | 'created'>) => {
+  const addHabit = (habitData: Omit<Habit, 'id' | 'streak' | 'lastCompleted' | 'completedDates' | 'created' | 'completionValues'>) => {
     const newHabit: Habit = {
       ...habitData,
       id: generateHabitId(),
       streak: 0,
       lastCompleted: '',
       completedDates: [],
-      created: new Date().toISOString()
+      completionValues: {},
+      created: new Date().toISOString(),
+      // Set defaults for new frequency properties
+      frequency: habitData.frequency || 'daily',
+      frequencyTarget: habitData.frequencyTarget || 1
     };
     
     dispatch({ type: 'ADD_HABIT', payload: newHabit });
@@ -37,7 +42,9 @@ export const useHabits = () => {
       category: template.category,
       target: template.target,
       icon: template.icon,
-      color: template.color
+      color: template.color,
+      frequency: template.frequency || 'daily',
+      frequencyTarget: template.frequencyTarget || 1
     });
   };
 
@@ -55,14 +62,22 @@ export const useHabits = () => {
 
     const today = format(new Date(), 'yyyy-MM-dd');
     
-    // Check if already completed today
-    if (isHabitCompletedToday(habit)) {
+    // For frequency-based habits, we allow multiple completions per day
+    // Only prevent re-completion for boolean daily habits
+    if (habit.frequency === 'daily' && habit.type === 'boolean' && isHabitCompletedToday(habit)) {
       return;
     }
 
     // Calculate what the new streak will be after completion
-    const newCompletedDates = [...habit.completedDates, today];
-    const newStreak = calculateStreaks(newCompletedDates);
+    const updatedHabit: Habit = {
+      ...habit,
+      completedDates: [...habit.completedDates, today],
+      completionValues: { ...habit.completionValues, [today]: value },
+      lastCompleted: today
+    };
+    
+    // Use new frequency-based streak calculation
+    const newStreak = calculateFrequencyStreak(updatedHabit);
 
     // Check for milestone achievement
     if (notificationsEnabled && newStreak > habit.streak) {
@@ -131,33 +146,48 @@ export const useHabits = () => {
 
     const now = new Date();
     const today = format(now, 'yyyy-MM-dd');
+    const habitsAtRisk: Array<{name: string, daysLeft: number}> = [];
     
     state.habits.forEach(habit => {
-      if (habit.streak > 0 && habit.lastCompleted) {
-        const lastCompletedDate = parseISO(habit.lastCompleted);
-        const daysSinceCompleted = differenceInDays(now, lastCompletedDate);
+      if (habit.streak > 0) {
+        // Use new frequency-based streak danger logic
+        const shouldReset = shouldResetFrequencyStreak(habit, today);
         
-        // Check if habit was completed today
-        const completedToday = isHabitCompletedToday(habit);
-        
-        // Warn if they haven't completed today AND it's been 1+ days since last completion
-        // This gives them until end of today to complete it
-        if (!completedToday && daysSinceCompleted >= 1) {
-          // Calculate how many days left before streak is lost
-          // Streak is lost if they miss tomorrow (daysSinceCompleted >= 2)
-          const daysLeft = Math.max(0, 1 - (daysSinceCompleted - 1));
-          
-          // Only show warning once per day to avoid spam
-          const lastWarningKey = `streak-warning-${habit.id}-${today}`;
-          const lastWarning = localStorage.getItem(lastWarningKey);
-          
-          if (!lastWarning) {
-            showStreakDangerWarning(habit.name, daysLeft);
-            localStorage.setItem(lastWarningKey, 'shown');
+        if (shouldReset) {
+          // For daily habits, follow the old logic
+          if (habit.frequency === 'daily') {
+            const lastCompletedDate = parseISO(habit.lastCompleted || today);
+            const daysSinceCompleted = differenceInDays(now, lastCompletedDate);
+            const completedToday = isHabitCompletedToday(habit);
+            
+            if (!completedToday && daysSinceCompleted >= 1) {
+              const daysLeft = Math.max(0, 1 - (daysSinceCompleted - 1));
+              habitsAtRisk.push({ name: habit.name, daysLeft });
+            }
+          } else {
+            // For frequency-based habits, show generic warning
+            habitsAtRisk.push({ 
+              name: habit.name, 
+              daysLeft: 0 // No specific days for frequency-based
+            });
           }
         }
       }
     });
+
+    // Only show notification if there are habits at risk and we haven't shown one today
+    if (habitsAtRisk.length > 0) {
+      const lastWarningKey = `streak-warning-multiple-${today}`;
+      const lastWarning = localStorage.getItem(lastWarningKey);
+      
+      if (!lastWarning) {
+        // Use the new consolidated notification method from notifications utils
+        import('../utils/notifications').then(({ notificationManager }) => {
+          notificationManager.showMultipleStreakDangerWarning(habitsAtRisk);
+        });
+        localStorage.setItem(lastWarningKey, 'shown');
+      }
+    }
   };
 
   return {

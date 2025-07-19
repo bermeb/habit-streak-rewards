@@ -74,6 +74,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   }, []);
 
+  // Trigger manual streak check via service worker message
+  const triggerManualStreakCheck = useCallback(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(registration => {
+        if (registration.active) {
+          registration.active.postMessage({ type: 'CHECK_STREAKS' });
+        }
+      });
+    }
+  }, []);
+
   // Check for streak dangers when the app loads or habits change
   useEffect(() => {
     // Initial check
@@ -82,17 +93,33 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     // Schedule background sync for when app is closed
     scheduleBackgroundSync();
     
+    // Manual trigger when app becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        triggerStreakDangerCheck();
+        triggerManualStreakCheck(); // Also trigger service worker check
+        scheduleBackgroundSync();
+      }
+    };
+
+    // Listen for page visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     // Check every hour, but only during active hours (8 AM to 10 PM)
     const checkInterval = setInterval(() => {
       const currentHour = new Date().getHours();
       if (currentHour >= 8 && currentHour <= 22) {
         triggerStreakDangerCheck();
+        triggerManualStreakCheck();
         scheduleBackgroundSync(); // Re-schedule background sync
       }
     }, 1000 * 60 * 60); // Check every hour
 
-    return () => clearInterval(checkInterval);
-  }, [state.habits, notificationsEnabled, triggerStreakDangerCheck, scheduleBackgroundSync]);
+    return () => {
+      clearInterval(checkInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [state.habits, notificationsEnabled, triggerStreakDangerCheck, scheduleBackgroundSync, triggerManualStreakCheck]);
 
   const contextValue: NotificationContextType = {
     triggerMilestoneCheck,

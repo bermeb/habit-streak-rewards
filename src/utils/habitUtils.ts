@@ -1,6 +1,7 @@
-import {addDays, differenceInDays, format, isAfter, isBefore, parseISO, subDays} from 'date-fns';
-import {Habit, HabitTemplate, Milestone, Reward} from '@/types';
+import {addDays, differenceInDays, format, isAfter, isBefore, parseISO, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear} from 'date-fns';
+import {Habit, HabitTemplate, Milestone, Reward, StreakFrequency} from '@/types';
 
+// Legacy function for backward compatibility
 export const calculateStreaks = (completedDates: string[]): number => {
   if (completedDates.length === 0) return 0;
 
@@ -27,12 +28,199 @@ export const calculateStreaks = (completedDates: string[]): number => {
   return streak;
 };
 
+// New function for frequency-based streak calculation
+export const calculateFrequencyStreak = (habit: Habit): number => {
+  if (habit.completedDates.length === 0) return 0;
+  
+  const { frequency, frequencyTarget = 1 } = habit;
+  const today = new Date();
+  
+  switch (frequency) {
+    case 'daily':
+      return calculateDailyStreak(habit.completedDates);
+    
+    case 'weekly':
+      return calculateWeeklyStreak(habit.completedDates, frequencyTarget, today);
+    
+    case 'monthly':
+      return calculateMonthlyStreak(habit.completedDates, frequencyTarget, today);
+    
+    case 'yearly':
+      return calculateYearlyStreak(habit.completedDates, frequencyTarget, today);
+    
+    default:
+      return calculateDailyStreak(habit.completedDates);
+  }
+};
+
+const calculateDailyStreak = (completedDates: string[]): number => {
+  if (completedDates.length === 0) return 0;
+
+  const sortedDates = completedDates
+    .map(date => parseISO(date))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  let streak = 0;
+  let currentDate = new Date();
+  
+  for (let i = 0; i < sortedDates.length; i++) {
+    const completedDate = sortedDates[i];
+    const daysDiff = differenceInDays(currentDate, completedDate);
+    
+    if (daysDiff === 0 || daysDiff === 1) {
+      streak++;
+      currentDate = subDays(currentDate, 1);
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+};
+
+const calculateWeeklyStreak = (completedDates: string[], target: number, today: Date): number => {
+  const sortedDates = completedDates
+    .map(date => parseISO(date))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  let streak = 0;
+  let currentWeekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday start
+  
+  while (true) {
+    const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+    const completionsThisWeek = sortedDates.filter(date => 
+      date >= currentWeekStart && date <= weekEnd
+    ).length;
+    
+    if (completionsThisWeek >= target) {
+      streak++;
+      currentWeekStart = startOfWeek(subDays(currentWeekStart, 7), { weekStartsOn: 1 });
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
+};
+
+const calculateMonthlyStreak = (completedDates: string[], target: number, today: Date): number => {
+  const sortedDates = completedDates
+    .map(date => parseISO(date))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  let streak = 0;
+  let currentMonth = startOfMonth(today);
+  
+  while (true) {
+    const monthEnd = endOfMonth(currentMonth);
+    const completionsThisMonth = sortedDates.filter(date => 
+      date >= currentMonth && date <= monthEnd
+    ).length;
+    
+    if (completionsThisMonth >= target) {
+      streak++;
+      currentMonth = startOfMonth(subDays(currentMonth, 1)); // Go to previous month
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
+};
+
+const calculateYearlyStreak = (completedDates: string[], target: number, today: Date): number => {
+  const sortedDates = completedDates
+    .map(date => parseISO(date))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  let streak = 0;
+  let currentYear = startOfYear(today);
+  
+  while (true) {
+    const yearEnd = endOfYear(currentYear);
+    const completionsThisYear = sortedDates.filter(date => 
+      date >= currentYear && date <= yearEnd
+    ).length;
+    
+    if (completionsThisYear >= target) {
+      streak++;
+      currentYear = startOfYear(subDays(currentYear, 365)); // Go to previous year
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
+};
+
 export const shouldResetStreak = (lastCompleted: string, today: string): boolean => {
   const lastCompletedDate = parseISO(lastCompleted);
   const todayDate = parseISO(today);
   const daysDiff = differenceInDays(todayDate, lastCompletedDate);
   
   return daysDiff > 1;
+};
+
+// New function for frequency-based streak reset logic
+export const shouldResetFrequencyStreak = (habit: Habit, today?: string): boolean => {
+  if (!habit.lastCompleted || habit.completedDates.length === 0) return false;
+  
+  const todayDate = today ? parseISO(today) : new Date();
+  const { frequency } = habit;
+  
+  switch (frequency) {
+    case 'daily':
+      return shouldResetStreak(habit.lastCompleted, format(todayDate, 'yyyy-MM-dd'));
+    
+    case 'weekly':
+      return shouldResetWeeklyStreak(habit, todayDate);
+    
+    case 'monthly':
+      return shouldResetMonthlyStreak(habit, todayDate);
+    
+    case 'yearly':
+      return shouldResetYearlyStreak(habit, todayDate);
+    
+    default:
+      return shouldResetStreak(habit.lastCompleted, format(todayDate, 'yyyy-MM-dd'));
+  }
+};
+
+const shouldResetWeeklyStreak = (habit: Habit, today: Date): boolean => {
+  const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+  const previousWeekStart = startOfWeek(subDays(currentWeekStart, 7), { weekStartsOn: 1 });
+  const previousWeekEnd = endOfWeek(previousWeekStart, { weekStartsOn: 1 });
+  
+  const completionsLastWeek = habit.completedDates.filter(date => {
+    const completedDate = parseISO(date);
+    return completedDate >= previousWeekStart && completedDate <= previousWeekEnd;
+  }).length;
+  
+  return completionsLastWeek < (habit.frequencyTarget || 1);
+};
+
+const shouldResetMonthlyStreak = (habit: Habit, today: Date): boolean => {
+  const previousMonth = startOfMonth(subDays(startOfMonth(today), 1));
+  const previousMonthEnd = endOfMonth(previousMonth);
+  
+  const completionsLastMonth = habit.completedDates.filter(date => {
+    const completedDate = parseISO(date);
+    return completedDate >= previousMonth && completedDate <= previousMonthEnd;
+  }).length;
+  
+  return completionsLastMonth < (habit.frequencyTarget || 1);
+};
+
+const shouldResetYearlyStreak = (habit: Habit, today: Date): boolean => {
+  const previousYear = startOfYear(subDays(startOfYear(today), 1));
+  const previousYearEnd = endOfYear(previousYear);
+  
+  const completionsLastYear = habit.completedDates.filter(date => {
+    const completedDate = parseISO(date);
+    return completedDate >= previousYear && completedDate <= previousYearEnd;
+  }).length;
+  
+  return completionsLastYear < (habit.frequencyTarget || 1);
 };
 
 export const isHabitCompletedToday = (habit: Habit, today?: string): boolean => {
@@ -84,7 +272,8 @@ export const getHabitTemplates = (): HabitTemplate[] => [
     target: 30,
     icon: '📚',
     color: '#3B82F6',
-    description: 'Tägliche Lernzeit in Minuten'
+    description: 'Tägliche Lernzeit in Minuten',
+    frequency: 'daily'
   },
   {
     name: 'Gym/Sport',
@@ -92,7 +281,9 @@ export const getHabitTemplates = (): HabitTemplate[] => [
     category: 'gym',
     icon: '💪',
     color: '#EF4444',
-    description: 'Sportliche Aktivität'
+    description: 'Sportliche Aktivität',
+    frequency: 'weekly',
+    frequencyTarget: 3
   },
   {
     name: 'Kalorien tracking',
@@ -101,7 +292,8 @@ export const getHabitTemplates = (): HabitTemplate[] => [
     target: 2000,
     icon: '🥗',
     color: '#10B981',
-    description: 'Tägliche Kalorienzufuhr'
+    description: 'Tägliche Kalorienzufuhr',
+    frequency: 'daily'
   },
   {
     name: 'Wasser trinken',
@@ -110,7 +302,8 @@ export const getHabitTemplates = (): HabitTemplate[] => [
     target: 8,
     icon: '💧',
     color: '#06B6D4',
-    description: 'Gläser Wasser pro Tag'
+    description: 'Gläser Wasser pro Tag',
+    frequency: 'daily'
   },
   {
     name: 'Meditation',
@@ -119,7 +312,8 @@ export const getHabitTemplates = (): HabitTemplate[] => [
     target: 10,
     icon: '🧘',
     color: '#8B5CF6',
-    description: 'Tägliche Meditation in Minuten'
+    description: 'Tägliche Meditation in Minuten',
+    frequency: 'daily'
   },
   {
     name: 'Lesen',
@@ -128,7 +322,30 @@ export const getHabitTemplates = (): HabitTemplate[] => [
     target: 20,
     icon: '📖',
     color: '#F59E0B',
-    description: 'Tägliche Lesezeit in Minuten'
+    description: 'Tägliche Lesezeit in Minuten',
+    frequency: 'daily'
+  },
+  {
+    name: 'Sparen',
+    type: 'number',
+    category: 'custom',
+    target: 200,
+    icon: '💰',
+    color: '#059669',
+    description: 'Geld sparen pro Monat',
+    frequency: 'monthly',
+    frequencyTarget: 1
+  },
+  {
+    name: 'Bücher lesen',
+    type: 'number',
+    category: 'learning',
+    target: 1,
+    icon: '📖',
+    color: '#7C2D12',
+    description: 'Bücher pro Monat lesen',
+    frequency: 'monthly',
+    frequencyTarget: 1
   }
 ];
 
@@ -238,10 +455,93 @@ export const formatHabitValue = (habit: Habit, value: number | boolean): string 
     if (habit.category === 'calories') {
       return `${value} kcal`;
     }
+    // Special formatting for monetary values
+    if (habit.name.toLowerCase().includes('spar') || habit.icon === '💰') {
+      return `${value}€`;
+    }
     return value.toString();
   }
   
   return value.toString();
+};
+
+// New utility functions for frequency-based habits
+export const getFrequencyLabel = (frequency: StreakFrequency): string => {
+  switch (frequency) {
+    case 'daily': return 'Täglich';
+    case 'weekly': return 'Wöchentlich';
+    case 'monthly': return 'Monatlich';
+    case 'yearly': return 'Jährlich';
+    default: return 'Täglich';
+  }
+};
+
+export const getFrequencyPeriodLabel = (frequency: StreakFrequency): string => {
+  switch (frequency) {
+    case 'daily': return 'Tag';
+    case 'weekly': return 'Woche';
+    case 'monthly': return 'Monat';
+    case 'yearly': return 'Jahr';
+    default: return 'Tag';
+  }
+};
+
+export const formatFrequencyTarget = (habit: Habit): string => {
+  const { frequency, frequencyTarget = 1 } = habit;
+  
+  if (frequency === 'daily' || frequencyTarget === 1) {
+    return getFrequencyLabel(frequency);
+  }
+  
+  return `${frequencyTarget}x ${getFrequencyLabel(frequency).toLowerCase()}`;
+};
+
+export const getCurrentPeriodProgress = (habit: Habit, today?: Date): { completed: number; target: number; percentage: number } => {
+  const todayDate = today || new Date();
+  const { frequency, frequencyTarget = 1 } = habit;
+  
+  let periodStart: Date;
+  let periodEnd: Date;
+  
+  switch (frequency) {
+    case 'daily': {
+      const todayStr = format(todayDate, 'yyyy-MM-dd');
+      const completed = habit.completedDates.includes(todayStr) ? 1 : 0;
+      return { completed, target: 1, percentage: completed * 100 };
+    }
+    
+    case 'weekly':
+      periodStart = startOfWeek(todayDate, { weekStartsOn: 1 });
+      periodEnd = endOfWeek(todayDate, { weekStartsOn: 1 });
+      break;
+    
+    case 'monthly':
+      periodStart = startOfMonth(todayDate);
+      periodEnd = endOfMonth(todayDate);
+      break;
+    
+    case 'yearly':
+      periodStart = startOfYear(todayDate);
+      periodEnd = endOfYear(todayDate);
+      break;
+    
+    default:
+      periodStart = todayDate;
+      periodEnd = todayDate;
+  }
+  
+  const completionsInPeriod = habit.completedDates.filter(date => {
+    const completedDate = parseISO(date);
+    return completedDate >= periodStart && completedDate <= periodEnd;
+  }).length;
+  
+  const percentage = Math.min((completionsInPeriod / frequencyTarget) * 100, 100);
+  
+  return {
+    completed: completionsInPeriod,
+    target: frequencyTarget,
+    percentage: Math.round(percentage)
+  };
 };
 
 export const generateHabitId = (): string => {

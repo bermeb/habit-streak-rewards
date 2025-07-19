@@ -1,8 +1,10 @@
+export type StreakFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
 export interface Habit {
   id: string;
   name: string;
   type: 'boolean' | 'number' | 'time';
-  target?: number; // für Kalorien/Minuten
+  target?: number; // für Kalorien/Minuten oder frequency target (e.g., 3x per week)
   category: 'learning' | 'gym' | 'calories' | 'custom';
   streak: number;
   lastCompleted: string; // ISO date
@@ -10,6 +12,10 @@ export interface Habit {
   created: string; // ISO date
   icon?: string;
   color?: string;
+  // New frequency-based streak properties
+  frequency: StreakFrequency;
+  frequencyTarget?: number; // how many times per frequency period (e.g., 3x per week)
+  completionValues: { [date: string]: number | boolean }; // track actual values per completion
 }
 
 export interface Reward {
@@ -97,6 +103,8 @@ export interface HabitTemplate {
   icon: string;
   color: string;
   description?: string;
+  frequency?: StreakFrequency;
+  frequencyTarget?: number;
 }
 
 export interface WheelSegment {

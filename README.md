@@ -4,8 +4,10 @@ A modern, mobile-first Progressive Web App (PWA) for building lasting habits thr
 
 ## ✨ Features
 
-### 🔥 Streak Tracking
+### 🔥 Advanced Streak Tracking
+- **Multiple Frequency Types**: Daily, weekly, monthly, and yearly streak patterns
 - **Smart Streak Calculation**: Choose between highest individual streak or combined milestone progress
+- **Flexible Tracking**: Perfect for different habit types and schedules
 - **Visual Progress**: Beautiful milestone indicators with customizable targets
 - **Flexible Habits**: Support for boolean, time-based, and number-based habits
 - **Streak Danger Alerts**: Intelligent notifications to help you maintain your streaks
@@ -72,13 +74,29 @@ npm run preview
 1. **Add Habits**: Create new habits or choose from pre-made templates
 2. **Set Milestones**: Configure your milestone days and reward probabilities
 3. **Add Rewards**: Create a collection of small, medium, and large rewards
-4. **Track Daily**: Mark habits as complete each day to build streaks
+4. **Track Progress**: Log completions based on your chosen frequency (daily/weekly/monthly/yearly)
 5. **Earn Rewards**: Spin the wheel when you reach milestones!
 
-### Habit Types
+### Habit Types & Frequencies
+
+**Habit Types**:
 - **Boolean**: Simple yes/no completion (e.g., "Exercise", "Meditate")
-- **Time-based**: Track minutes spent (e.g., "30 min reading", "20 min learning")
-- **Number-based**: Count quantities (e.g., "8 glasses of water", "2000 calories")
+- **Time-based**: Track minutes spent (e.g., "30 min reading", "20 min learning")  
+- **Number-based**: Count quantities (e.g., "8 glasses of water", "€200 saved")
+
+**Frequency Patterns**:
+- **Daily Habits**: Traditional daily streaks - complete every day to maintain streak
+- **Weekly Habits**: Complete X times per week (e.g., "Gym 3x per week")
+- **Monthly Habits**: Complete X times per month (e.g., "Save €200 per month", "Read 2 books")
+- **Yearly Habits**: Complete X times per year (e.g., "Take 4 vacations per year")
+
+**Examples**:
+```
+🏋️ Gym (Weekly): 3x per week → Streak = consecutive weeks hitting target
+💰 Savings (Monthly): €200 per month → Streak = consecutive months saving €200+
+📚 Learning (Daily): 30 min per day → Streak = consecutive days completed
+✈️ Travel (Yearly): 2 trips per year → Streak = consecutive years with 2+ trips
+```
 
 ### Reward System
 - **Small Rewards (60-70%)**: Quick treats and short activities
@@ -158,6 +176,38 @@ VITE_APP_THEME_COLOR=#3B82F6
 - **Rewards**: Customize default rewards in the same file
 - **Notifications**: Configure timing in `src/context/NotificationContext.tsx`
 
+## 🧪 Testing
+
+The project includes comprehensive tests covering all frequency-based streak functionality.
+
+### Running Tests
+```bash
+# Run all tests once
+npm run test
+
+# Run tests in watch mode during development
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests with interactive UI
+npm run test:ui
+```
+
+### Test Coverage Areas
+- **Streak Calculations**: Daily, weekly, monthly, yearly frequency logic
+- **Habit Management**: Creation, completion, and migration of frequency-based habits
+- **UI Components**: Frequency selection and progress display
+- **State Management**: Context and hook functionality
+- **Edge Cases**: Boundary conditions, leap years, timezone handling
+
+### Writing Tests
+Tests are located alongside source files with `.test.ts` or `.test.tsx` extensions. We use:
+- **Vitest**: Fast, Vite-native test runner
+- **Testing Library**: Component testing utilities
+- **Jest DOM**: Additional DOM matchers
+
 ## 🚀 Deployment
 
 ### Vercel (Recommended)
@@ -178,10 +228,6 @@ npm run build
 npm run deploy
 ```
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
 ### Development Workflow
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
@@ -193,7 +239,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - Follow TypeScript best practices
 - Use ESLint and Prettier for consistent formatting
 - Write meaningful commit messages
-- Add tests for new features
+- **Add comprehensive tests for new features** - Aim for >90% coverage
+- Test edge cases and frequency boundary conditions
 - Update documentation as needed
 
 ## 📜 License
@@ -215,12 +262,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🎯 Roadmap
 
+- [x] **Frequency-Based Streaks**: Weekly, monthly, and yearly habit tracking
 - [ ] **Social Features**: Share streaks and compete with friends
-- [ ] **Advanced Analytics**: Detailed habit insights and trends
+- [ ] **Advanced Analytics**: Detailed habit insights and trends with frequency breakdowns
 - [ ] **Cloud Sync**: Cross-device synchronization
-- [ ] **Habit Templates**: Community-shared habit templates
-- [ ] **Export/Import**: Backup and restore functionality
+- [ ] **Smart Habit Templates**: AI-powered habit suggestions based on frequency patterns
+- [ ] **Export/Import**: Backup and restore functionality with migration support
 - [ ] **Integrations**: Connect with fitness trackers and calendars
+- [ ] **Custom Frequencies**: Define your own frequency patterns (every 3 days, twice per week, etc.)
 
 ---
 

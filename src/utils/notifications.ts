@@ -198,6 +198,32 @@ export class NotificationManager {
     });
   }
 
+  async showMultipleStreakDangerWarning(habitsAtRisk: Array<{name: string, daysLeft: number}>): Promise<boolean> {
+    const habitCount = habitsAtRisk.length;
+    const habitNames = habitsAtRisk.map(h => h.name).join(', ');
+    
+    return this.showNotification({
+      title: '⚠️ Deine Streaks sind in Gefahr!',
+      body: habitCount === 1 
+        ? `${habitsAtRisk[0].name}: Nur noch ${habitsAtRisk[0].daysLeft} Tag(e) bis dein Streak verloren geht!`
+        : `${habitCount} Habits brauchen deine Aufmerksamkeit: ${habitNames}`,
+      tag: 'streak-danger-multiple',
+      data: {
+        type: 'streak-danger-multiple',
+        habitsAtRisk,
+        action: 'quick-check'
+      },
+      actions: [
+        {
+          action: 'open-app',
+          title: '📱 Jetzt abhaken',
+          icon: '/icon-192x192.png'
+        }
+      ],
+      requireInteraction: true
+    });
+  }
+
   async scheduleDailyReminder(habitName: string, time: string): Promise<boolean> {
     // Note: PWAs can't schedule notifications natively
     // This would require a server or using the app when it's open

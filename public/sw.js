@@ -48,10 +48,28 @@ self.addEventListener('activate', (event) => {
 
 // Handle background sync for offline habit completion and notifications
 self.addEventListener('sync', (event) => {
+  console.log('Background sync triggered:', event.tag);
+  
   if (event.tag === 'habit-sync') {
     event.waitUntil(syncHabits());
   } else if (event.tag === 'streak-danger-check') {
     event.waitUntil(checkStreakDangers());
+  }
+});
+
+// Periodic background sync (for supporting browsers)
+self.addEventListener('periodicsync', (event) => {
+  console.log('Periodic background sync triggered:', event.tag);
+  
+  if (event.tag === 'streak-danger-check') {
+    event.waitUntil(checkStreakDangers());
+  }
+});
+
+// Handle app visibility changes to trigger sync
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CHECK_STREAKS') {
+    checkStreakDangers();
   }
 });
 
@@ -69,6 +87,7 @@ function checkStreakDangers() {
       
       const now = new Date();
       const today = now.toISOString().split('T')[0];
+      const habitsAtRisk = [];
       
       habits.forEach(habit => {
         if (habit.streak > 0 && habit.lastCompleted) {
@@ -80,18 +99,21 @@ function checkStreakDangers() {
           
           if (!completedToday && daysSinceCompleted >= 1) {
             const daysLeft = Math.max(0, 1 - (daysSinceCompleted - 1));
-            
-            // Only show warning once per day to avoid spam
-            const lastWarningKey = `streak-warning-${habit.id}-${today}`;
-            const lastWarning = localStorage.getItem(lastWarningKey);
-            
-            if (!lastWarning) {
-              showNotification(habit.name, daysLeft);
-              localStorage.setItem(lastWarningKey, 'shown');
-            }
+            habitsAtRisk.push({ name: habit.name, daysLeft });
           }
         }
       });
+
+      // Only show notification if there are habits at risk and we haven't shown one today
+      if (habitsAtRisk.length > 0) {
+        const lastWarningKey = `streak-warning-multiple-${today}`;
+        const lastWarning = localStorage.getItem(lastWarningKey);
+        
+        if (!lastWarning) {
+          showMultipleStreakDangerNotification(habitsAtRisk);
+          localStorage.setItem(lastWarningKey, 'shown');
+        }
+      }
       
       resolve();
     } catch (error) {
@@ -101,7 +123,38 @@ function checkStreakDangers() {
   });
 }
 
-// Show notification
+// Show consolidated notification for multiple habits at risk
+function showMultipleStreakDangerNotification(habitsAtRisk) {
+  const habitCount = habitsAtRisk.length;
+  const habitNames = habitsAtRisk.map(h => h.name).join(', ');
+  
+  const title = '⚠️ Deine Streaks sind in Gefahr!';
+  const message = habitCount === 1 
+    ? `${habitsAtRisk[0].name}: Nur noch ${habitsAtRisk[0].daysLeft} Tag(e) bis dein Streak verloren geht!`
+    : `${habitCount} Habits brauchen deine Aufmerksamkeit: ${habitNames}`;
+    
+  self.registration.showNotification(title, {
+    body: message,
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    tag: 'streak-danger-multiple',
+    requireInteraction: true,
+    vibrate: [200, 100, 200, 100, 200],
+    data: {
+      type: 'streak-danger-multiple',
+      habitsAtRisk
+    },
+    actions: [
+      {
+        action: 'open-app',
+        title: 'Jetzt abhaken',
+        icon: '/icon-192x192.png'
+      }
+    ]
+  });
+}
+
+// Legacy function kept for compatibility
 function showNotification(habitName, daysLeft) {
   const title = '⚠️ Streak in Gefahr!';
   const message = daysLeft > 0 
@@ -259,7 +312,7 @@ self.addEventListener('notificationclick', (event) => {
       event.waitUntil(
         self.clients.openWindow('/?view=rewards')
       );
-    } else if (data.type === 'reminder' || data.type === 'streak-danger') {
+    } else if (data.type === 'reminder' || data.type === 'streak-danger' || data.type === 'streak-danger-multiple') {
       event.waitUntil(
         self.clients.openWindow('/?quick=true')
       );

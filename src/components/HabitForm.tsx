@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { Habit, HabitTemplate } from '@/types';
+import { Habit, HabitTemplate, StreakFrequency } from '@/types';
 import { useHabits } from '../hooks/useHabits';
 
 interface HabitFormProps {
@@ -17,7 +17,9 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onClose, onSave }) 
     category: habit?.category || 'custom' as const,
     target: habit?.target || 0,
     icon: habit?.icon || '',
-    color: habit?.color || '#3B82F6'
+    color: habit?.color || '#3B82F6',
+    frequency: habit?.frequency || 'daily' as StreakFrequency,
+    frequencyTarget: habit?.frequencyTarget || 1
   });
   const [targetValue, setTargetValue] = useState(habit?.target?.toString() || '');
   const [selectedTemplate, setSelectedTemplate] = useState<HabitTemplate | null>(null);
@@ -33,7 +35,9 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onClose, onSave }) 
         category: selectedTemplate.category,
         target: selectedTemplate.target || 0,
         icon: selectedTemplate.icon,
-        color: selectedTemplate.color
+        color: selectedTemplate.color,
+        frequency: selectedTemplate.frequency || 'daily',
+        frequencyTarget: selectedTemplate.frequencyTarget || 1
       });
       setTargetValue(selectedTemplate.target?.toString() || '');
     }
@@ -174,10 +178,43 @@ export const HabitForm: React.FC<HabitFormProps> = ({ habit, onClose, onSave }) 
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Häufigkeit
+                </label>
+                <select
+                  value={formData.frequency}
+                  onChange={(e) => setFormData({ ...formData, frequency: e.target.value as StreakFrequency })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="daily">Täglich</option>
+                  <option value="weekly">Wöchentlich</option>
+                  <option value="monthly">Monatlich</option>
+                  <option value="yearly">Jährlich</option>
+                </select>
+              </div>
+
+              {formData.frequency !== 'daily' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Anzahl pro {formData.frequency === 'weekly' ? 'Woche' : formData.frequency === 'monthly' ? 'Monat' : 'Jahr'}
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.frequencyTarget}
+                    onChange={(e) => setFormData({ ...formData, frequencyTarget: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    min="1"
+                  />
+                </div>
+              )}
+            </div>
+
             {(formData.type === 'number' || formData.type === 'time') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Zielwert {formData.type === 'time' ? '(Minuten)' : ''}
+                  Zielwert {formData.type === 'time' ? '(Minuten)' : ''} {formData.frequency !== 'daily' ? 'pro Durchführung' : ''}
                 </label>
                 <input
                   type="number"
