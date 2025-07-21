@@ -14,7 +14,7 @@ interface RewardWheelProps {
 }
 
 export const RewardWheel: React.FC<RewardWheelProps> = ({
-  habitStreak,
+  habitStreak: _habitStreak,
   habitName: _habitName,
   onRewardWon,
   disabled = false
@@ -402,10 +402,10 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
 
         {!canSpinWheel && (
           <div className="text-xs text-gray-500 dark:text-gray-500 px-4">
-            {habitStreak === 0 
+            {effectiveStreak === 0 
               ? 'Vervollständige dein Habit um das Rad freizuschalten'
-              : getCooldownTimeRemaining()
-              ? `Cooldown: Noch ${getCooldownTimeRemaining()}`
+              : getCooldownTimeRemaining(effectiveStreak)
+              ? getCooldownTimeRemaining(effectiveStreak)
               : 'Erreiche einen Meilenstein um zu drehen'
             }
           </div>
@@ -477,8 +477,8 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
               </button>
               {!isDemoSpin && (
                 <button
-                  disabled={true}
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg cursor-default"
+                  onClick={() => setShowResult(false)}
+                  className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
                 >
                   ✓ Belohnung erhalten
                 </button>

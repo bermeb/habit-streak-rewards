@@ -103,8 +103,8 @@ export const importAppData = (file: File): Promise<ExportData> => {
         }
         
         resolve(data as ExportData);
-      } catch {
-        reject(new Error('Failed to parse file: Invalid JSON format'));
+      } catch (error) {
+        reject(new Error(`Failed to parse file: ${error instanceof Error ? error.message : 'Invalid JSON format'}`));
       }
     };
     

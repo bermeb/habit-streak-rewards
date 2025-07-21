@@ -57,46 +57,48 @@ export const useHabits = () => {
   };
 
   const completeHabit = (habitId: string, value: number | boolean = true) => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    completeHabitForDate(habitId, today, value);
+  };
+
+  const completeHabitForDate = (habitId: string, date: string, value: number | boolean = true) => {
     const habit = state.habits.find(h => h.id === habitId);
     if (!habit) return;
-
-    const today = format(new Date(), 'yyyy-MM-dd');
     
-    // For frequency-based habits, we allow multiple completions per day
-    // Only prevent re-completion for boolean daily habits
-    if (habit.frequency === 'daily' && habit.type === 'boolean' && isHabitCompletedToday(habit)) {
-      return;
-    }
-
-    // Calculate what the new streak will be after completion
-    const updatedHabit: Habit = {
-      ...habit,
-      completedDates: [...habit.completedDates, today],
-      completionValues: { ...habit.completionValues, [today]: value },
-      lastCompleted: today
-    };
-    
-    // Use new frequency-based streak calculation
-    const newStreak = calculateFrequencyStreak(updatedHabit);
-
-    // Check for milestone achievement
-    if (notificationsEnabled && newStreak > habit.streak) {
-      const achievedMilestone = state.milestones.find(milestone => 
-        milestone.days === newStreak && newStreak > 0
-      );
-
-      if (achievedMilestone) {
-        // Delay notification slightly to ensure state is updated
-        setTimeout(() => {
-          showMilestoneNotification(habit.name, newStreak);
-        }, 500);
-      }
-    }
-
+    // Always dispatch - the reducer will handle duplicates properly
     dispatch({ 
       type: 'COMPLETE_HABIT', 
-      payload: { habitId, date: today, value } 
+      payload: { habitId, date, value } 
     });
+
+    // Check for milestone achievement (only for today's completions to avoid duplicate notifications)
+    const today = format(new Date(), 'yyyy-MM-dd');
+    if (notificationsEnabled && date === today) {
+      // Calculate what the streak would be for milestone checking
+      const updatedHabit: Habit = {
+        ...habit,
+        completedDates: habit.completedDates.includes(date) 
+          ? habit.completedDates 
+          : [...habit.completedDates, date].sort(),
+        completionValues: { ...habit.completionValues, [date]: value },
+        lastCompleted: new Date(habit.lastCompleted) > new Date(date) ? habit.lastCompleted : date
+      };
+      
+      const newStreak = calculateFrequencyStreak(updatedHabit);
+      
+      if (newStreak > habit.streak) {
+        const achievedMilestone = state.milestones.find(milestone => 
+          milestone.days === newStreak && newStreak > 0
+        );
+
+        if (achievedMilestone) {
+          // Delay notification slightly to ensure state is updated
+          setTimeout(() => {
+            showMilestoneNotification(habit.name, newStreak);
+          }, 500);
+        }
+      }
+    }
   };
 
   const resetHabitStreak = (habitId: string) => {
@@ -190,6 +192,31 @@ export const useHabits = () => {
     }
   };
 
+  const getBackfillableDays = (habitId: string, maxDays: number = 7): string[] => {
+    const habit = state.habits.find(h => h.id === habitId);
+    if (!habit) return [];
+
+    const today = new Date();
+    const backfillableDays: string[] = [];
+    
+    for (let i = 1; i <= maxDays; i++) {
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() - i);
+      const dateString = format(targetDate, 'yyyy-MM-dd');
+      
+      // Only include days that aren't already completed
+      if (!habit.completedDates.includes(dateString)) {
+        backfillableDays.push(dateString);
+      }
+    }
+    
+    return backfillableDays;
+  };
+
+  const canBackfillHabit = (habitId: string): boolean => {
+    return getBackfillableDays(habitId).length > 0;
+  };
+
   return {
     habits: state.habits,
     addHabit,
@@ -197,6 +224,7 @@ export const useHabits = () => {
     updateHabit,
     deleteHabit,
     completeHabit,
+    completeHabitForDate,
     resetHabitStreak,
     getHabitById,
     getHabitsByCategory,
@@ -204,6 +232,8 @@ export const useHabits = () => {
     getStreakLeaders,
     getHabitStats,
     getAvailableTemplates,
-    checkStreakDangers
+    checkStreakDangers,
+    getBackfillableDays,
+    canBackfillHabit
   };
 };

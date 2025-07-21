@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Check, Edit3, Trash2, Target, Clock, Hash } from 'lucide-react';
-import { Habit } from '../types';
+import { Check, Edit3, Trash2, Target, Clock, Hash, Calendar } from 'lucide-react';
+import { Habit } from '@/types';
 import { useHabits } from '../hooks/useHabits';
 import { useStreaks } from '../hooks/useStreaks';
 import { formatHabitValue } from '../utils/habitUtils';
+import { HabitBackfill } from './HabitBackfill';
 
 interface HabitCardProps {
   habit: Habit;
@@ -12,10 +13,11 @@ interface HabitCardProps {
 }
 
 export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete }) => {
-  const { completeHabit, getHabitStats } = useHabits();
+  const { completeHabit, getHabitStats, canBackfillHabit } = useHabits();
   const { getStreakColor, getStreakEmoji, getStreakMotivation } = useStreaks();
   const [inputValue, setInputValue] = useState<string>('');
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isBackfillOpen, setIsBackfillOpen] = useState(false);
 
   const stats = getHabitStats(habit.id);
   const streakColor = getStreakColor(habit.streak);
@@ -29,10 +31,16 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
       if (habit.type === 'boolean') {
         completeHabit(habit.id, true);
       } else if (habit.type === 'number' || habit.type === 'time') {
-        const value = parseInt(inputValue) || habit.target || 0;
+        const value = parseInt(inputValue, 10) || habit.target || 0;
+        if (value < 0) {
+          throw new Error('Der Wert darf nicht negativ sein');
+        }
         completeHabit(habit.id, value);
         setInputValue('');
       }
+    } catch (error) {
+      console.error('Fehler beim Abschließen des Habits:', error);
+      // Could add user notification here
     } finally {
       setTimeout(() => setIsCompleting(false), 500);
     }
@@ -43,7 +51,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
       return (
         <button
           disabled
-          className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg font-medium opacity-75 cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg font-medium opacity-75 cursor-not-allowed"
         >
           <Check size={20} />
           Erledigt
@@ -56,7 +64,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
         <button
           onClick={handleComplete}
           disabled={isCompleting}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
         >
           {isCompleting ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -69,7 +77,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
     }
 
     return (
-      <div className="flex gap-2">
+      <div className="flex gap-2 w-full">
         <div className="flex-1 relative">
           <input
             type="number"
@@ -197,7 +205,20 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
       </div>
 
       <div className="space-y-3">
-        {getCompletionButton()}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            {getCompletionButton()}
+          </div>
+          {canBackfillHabit(habit.id) && (
+            <button
+              onClick={() => setIsBackfillOpen(true)}
+              className="px-3 py-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors border border-orange-200 dark:border-orange-800"
+              title="Vergessene Tage nachtragen"
+            >
+              <Calendar size={18} />
+            </button>
+          )}
+        </div>
         
         {habit.streak > 0 && (
           <div className="text-center">
@@ -208,6 +229,12 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
           </div>
         )}
       </div>
+      
+      <HabitBackfill 
+        habit={habit}
+        isOpen={isBackfillOpen}
+        onClose={() => setIsBackfillOpen(false)}
+      />
     </div>
   );
 };

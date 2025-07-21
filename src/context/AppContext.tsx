@@ -75,6 +75,8 @@ function appReducer(state: AppState, action: HabitAction): AppState {
       const habit = state.habits.find(h => h.id === habitId);
       if (!habit) return state;
 
+      // Only add to completions if it's a new completion (not updating an existing date)
+      const existingCompletion = state.completions.find(c => c.habitId === habitId && c.date === date);
       const completion: HabitCompletion = {
         habitId,
         date,
@@ -82,13 +84,20 @@ function appReducer(state: AppState, action: HabitAction): AppState {
         timestamp: new Date().toISOString()
       };
 
-      const updatedCompletions = [...state.completions, completion];
+      const updatedCompletions = existingCompletion 
+        ? state.completions.map(c => c.habitId === habitId && c.date === date ? completion : c)
+        : [...state.completions, completion];
       const updatedHabits = state.habits.map(h => {
         if (h.id === habitId) {
+          // Handle duplicate dates by updating existing value or adding new date
+          const newCompletedDates = h.completedDates.includes(date) 
+            ? h.completedDates  // Don't add duplicate date
+            : [...h.completedDates, date].sort();  // Add and sort dates
+          
           const updatedHabit = {
             ...h,
-            lastCompleted: date,
-            completedDates: [...h.completedDates, date],
+            lastCompleted: new Date(h.lastCompleted) > new Date(date) ? h.lastCompleted : date,
+            completedDates: newCompletedDates,
             completionValues: { ...h.completionValues, [date]: value },
             // Set defaults for existing habits that don't have frequency properties
             frequency: h.frequency || 'daily',
@@ -108,7 +117,7 @@ function appReducer(state: AppState, action: HabitAction): AppState {
 
       const newLongestStreak = Math.max(
         state.statistics.longestStreak,
-        Math.max(...updatedHabits.map(h => h.streak))
+        updatedHabits.length > 0 ? Math.max(...updatedHabits.map(h => h.streak)) : 0
       );
 
       return {
@@ -117,7 +126,10 @@ function appReducer(state: AppState, action: HabitAction): AppState {
         completions: updatedCompletions,
         statistics: {
           ...state.statistics,
-          totalHabitsCompleted: state.statistics.totalHabitsCompleted + 1,
+          // Only increment total if it's a new completion, not an update
+          totalHabitsCompleted: existingCompletion 
+            ? state.statistics.totalHabitsCompleted 
+            : state.statistics.totalHabitsCompleted + 1,
           longestStreak: newLongestStreak,
           lastUpdated: new Date().toISOString()
         }

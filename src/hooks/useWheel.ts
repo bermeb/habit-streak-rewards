@@ -1,7 +1,7 @@
 import { useAppContext } from '../context/useAppContext';
 import { useRewards } from './useRewards';
 import { Reward, WheelSegment } from '@/types';
-import { getRewardProbabilities } from '../utils/habitUtils';
+import { getRewardProbabilities, getAchievedMilestones } from '../utils/habitUtils';
 
 export const useWheel = () => {
   const { state, dispatch } = useAppContext();
@@ -53,8 +53,25 @@ export const useWheel = () => {
     return new Promise((resolve) => {
       dispatch({ type: 'SET_WHEEL_SPINNING', payload: true });
       
-      // Record spin time for cooldown
-      localStorage.setItem('lastWheelSpin', new Date().toISOString());
+      const wheelSettings = JSON.parse(localStorage.getItem('wheelSettings') || '{"minStreakForWheel": 7, "allowWheelOnlyAtMilestones": true, "cooldownHours": 24, "spinMode": "once-per-milestone"}');
+      const spinMode = wheelSettings.spinMode || (wheelSettings.allowWheelOnlyAtMilestones ? 'once-per-milestone' : 'cooldown');
+      
+      // Record spin based on mode
+      if (spinMode === 'once-per-milestone') {
+        // Record milestone spin - mark the highest achieved milestone as spun
+        const achievedMilestones = getAchievedMilestones(streak, state.milestones);
+        if (achievedMilestones.length > 0) {
+          const highestMilestone = Math.max(...achievedMilestones.map(m => m.days));
+          const milestoneSpins = JSON.parse(localStorage.getItem('milestoneSpins') || '[]');
+          if (!milestoneSpins.includes(highestMilestone)) {
+            milestoneSpins.push(highestMilestone);
+            localStorage.setItem('milestoneSpins', JSON.stringify(milestoneSpins));
+          }
+        }
+      } else {
+        // Record spin time for cooldown mode
+        localStorage.setItem('lastWheelSpin', new Date().toISOString());
+      }
       
       const probabilities = getRewardProbabilities(streak, state.milestones);
       const randomValue = Math.random() * 100;
@@ -84,29 +101,47 @@ export const useWheel = () => {
 
   const canSpinWheel = (streak: number): boolean => {
     // Get wheel settings from localStorage
-    const wheelSettings = JSON.parse(localStorage.getItem('wheelSettings') || '{"minStreakForWheel": 7, "allowWheelOnlyAtMilestones": true, "cooldownHours": 24}');
+    const wheelSettings = JSON.parse(localStorage.getItem('wheelSettings') || '{"minStreakForWheel": 7, "allowWheelOnlyAtMilestones": true, "cooldownHours": 24, "spinMode": "once-per-milestone"}');
     
     // Check minimum streak requirement
     if (streak < wheelSettings.minStreakForWheel) {
       return false;
     }
     
-    // Check milestone requirement if enabled
-    if (wheelSettings.allowWheelOnlyAtMilestones) {
-      const achievedMilestones = state.milestones.filter(m => m.days <= streak);
+    const spinMode = wheelSettings.spinMode || (wheelSettings.allowWheelOnlyAtMilestones ? 'once-per-milestone' : 'cooldown');
+    
+    if (spinMode === 'once-per-milestone') {
+      // Check if user has achieved any milestones
+      const achievedMilestones = getAchievedMilestones(streak, state.milestones);
       if (achievedMilestones.length === 0) {
         return false;
       }
-    }
-    
-    // Check cooldown if enabled
-    if (wheelSettings.cooldownHours > 0) {
-      const lastSpin = localStorage.getItem('lastWheelSpin');
-      if (lastSpin) {
-        const lastSpinTime = new Date(lastSpin);
-        const cooldownEnd = new Date(lastSpinTime.getTime() + wheelSettings.cooldownHours * 60 * 60 * 1000);
-        if (new Date() < cooldownEnd) {
+      
+      // Check if there are any unspun milestones
+      const milestoneSpins = JSON.parse(localStorage.getItem('milestoneSpins') || '[]');
+      const unspunMilestones = achievedMilestones.filter(milestone => 
+        !milestoneSpins.includes(milestone.days)
+      );
+      
+      return unspunMilestones.length > 0;
+    } else {
+      // Cooldown mode - check milestone requirement if enabled (backward compatibility)
+      if (wheelSettings.allowWheelOnlyAtMilestones) {
+        const achievedMilestones = getAchievedMilestones(streak, state.milestones);
+        if (achievedMilestones.length === 0) {
           return false;
+        }
+      }
+      
+      // Check cooldown
+      if (wheelSettings.cooldownHours > 0) {
+        const lastSpin = localStorage.getItem('lastWheelSpin');
+        if (lastSpin) {
+          const lastSpinTime = new Date(lastSpin);
+          const cooldownEnd = new Date(lastSpinTime.getTime() + wheelSettings.cooldownHours * 60 * 60 * 1000);
+          if (new Date() < cooldownEnd) {
+            return false;
+          }
         }
       }
     }
@@ -133,7 +168,13 @@ export const useWheel = () => {
   };
 
   const getNextSpinAvailable = (_streak: number): Date | null => {
-    const wheelSettings = JSON.parse(localStorage.getItem('wheelSettings') || '{"minStreakForWheel": 7, "allowWheelOnlyAtMilestones": true, "cooldownHours": 24}');
+    const wheelSettings = JSON.parse(localStorage.getItem('wheelSettings') || '{"minStreakForWheel": 7, "allowWheelOnlyAtMilestones": true, "cooldownHours": 24, "spinMode": "once-per-milestone"}');
+    const spinMode = wheelSettings.spinMode || (wheelSettings.allowWheelOnlyAtMilestones ? 'once-per-milestone' : 'cooldown');
+    
+    if (spinMode === 'once-per-milestone') {
+      // For once-per-milestone mode, return null since availability depends on achieving new milestones
+      return null;
+    }
     
     if (wheelSettings.cooldownHours > 0) {
       const lastSpin = localStorage.getItem('lastWheelSpin');
@@ -149,8 +190,29 @@ export const useWheel = () => {
     return null;
   };
 
-  const getCooldownTimeRemaining = (): string | null => {
-    const nextSpin = getNextSpinAvailable(0);
+  const getCooldownTimeRemaining = (streak: number = 0): string | null => {
+    const wheelSettings = JSON.parse(localStorage.getItem('wheelSettings') || '{"minStreakForWheel": 7, "allowWheelOnlyAtMilestones": true, "cooldownHours": 24, "spinMode": "once-per-milestone"}');
+    const spinMode = wheelSettings.spinMode || (wheelSettings.allowWheelOnlyAtMilestones ? 'once-per-milestone' : 'cooldown');
+    
+    if (spinMode === 'once-per-milestone') {
+      // For once-per-milestone mode, show how many milestones are available to spin for
+      if (streak > 0) {
+        const achievedMilestones = getAchievedMilestones(streak, state.milestones);
+        const milestoneSpins = JSON.parse(localStorage.getItem('milestoneSpins') || '[]');
+        const unspunMilestones = achievedMilestones.filter(milestone => 
+          !milestoneSpins.includes(milestone.days)
+        );
+        
+        if (unspunMilestones.length > 0) {
+          return `${unspunMilestones.length} Meilenstein${unspunMilestones.length > 1 ? 'e' : ''} verfügbar`;
+        } else {
+          return 'Erreiche einen neuen Meilenstein';
+        }
+      }
+      return 'Erreiche einen Meilenstein';
+    }
+    
+    const nextSpin = getNextSpinAvailable(streak);
     if (!nextSpin) return null;
     
     const now = new Date();
