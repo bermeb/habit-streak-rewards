@@ -183,10 +183,6 @@ export const RewardWheel: React.FC<RewardWheelProps> = ({
     setShowResult(false);
     setIsDemoSpin(isDemo);
 
-    // Record spin time for cooldown (only for real spins, not demo spins)
-    if (!isDemo) {
-      localStorage.setItem('lastWheelSpin', new Date().toISOString());
-    }
 
     if (segments.length === 0) {
       setIsSpinning(false);
